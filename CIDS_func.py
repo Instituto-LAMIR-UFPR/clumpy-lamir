@@ -398,6 +398,7 @@ def carb_gas_oxygen_fractionation_acq(instance):
 
     d18O_min = ((d18O_vpdb+1000)/rxnFrac[rxnKey])-1000
     return d18O_min
+
 def CIDS_parser(filePath):
     '''Reads in a .csv CIDS file, pulls out voltages, calculated bulk isotopes, and
     relevant sample information'''
@@ -725,11 +726,19 @@ def Isodat_File_Parser(fileName):
     #Slightly elegant method: pulling out based on spacing after 'CIntensityData' ascii key
     # TODO: make this more flexible
     # TODO: Catch errors if wrong voltage sequence found
-    startPreVolt=start+2304+168 #observed location of 'pre' cycle on ref gas side
-    voltRef_raw.append(struct.unpack('6d',buff[startPreVolt:(startPreVolt+6*8)]))
+    startPreVolt=start+9876 #observed location of 'pre' cycle on ref gas side
+    voltRef_raw.append(struct.unpack('7d',buff[startPreVolt:(startPreVolt+7*8)]))
+
+    startRefVolt=start+52 #observed location of ref gas voltage cycles
+    voltRef_raw.append(struct.unpack('7d',buff[startRefVolt:(startRefVolt+7*8)]))
+
+    for i in range(6):
+        startRefVolt=start+795+i*689 #observed location of ref gas voltage cycles
+        voltRef_raw.append(struct.unpack('7d',buff[startRefVolt:(startRefVolt+7*8)]))
+
     for i in range(7):
-        startRefVolt=start+52+i*164 #observed location of ref gas voltage cycles
-        voltRef_raw.append(struct.unpack('6d',buff[startRefVolt:(startRefVolt+6*8)]))
+        startSamVolt=start+5073+i*685 #observed location of sample gas voltage cycles
+        voltSam_raw.append(struct.unpack('7d',buff[startSamVolt:(startSamVolt+7*8)]))
 
         startSamVolt=start+1344+i*160 #observed location of sample gas voltage cycles
         voltSam_raw.append(struct.unpack('6d',buff[startSamVolt:(startSamVolt+6*8)]))
@@ -1758,7 +1767,7 @@ def ExportSequence(analyses, pbl = False):
     if pbl:
         exportNameFlatlist += '_pblCorr'
     FlatList_exporter(analyses,exportNameFlatlist)
-    print('Analyses successfully exported')
+    print 'Analyses successfully exported in: ', os.getcwd()
     doDaeron = raw_input('Export analyses for a Daeron-style ARF reduction (y/n)? ')
     if doDaeron.lower() == 'y':
         exportNameDaeron = 'autoDaeronExport'
@@ -1787,7 +1796,7 @@ def ExportSequence_named(analyses, fileName, pbl = False):
     Get_gases(analyses)
     Get_carbonate_stds(analyses)
     Daeron_exporter_crunch(analyses,exportNameDaeron)
-    print('Analyses successfully exported')
+    print 'Analyses successfully exported in: ', os.getcwd()
 
     return
 
