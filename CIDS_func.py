@@ -812,7 +812,12 @@ def Isodat_File_Parser(fileName):
     # Rough guess of range where analysis name is, accounting for a large variation in length
     nameBlock = buff[startName+200:startName+400].decode('utf-16')
     #Exact name based on locations of unicode strings directly before and after
-    analysisName = nameBlock[(nameBlock.find('Background')+18):(nameBlock.find('Identifier 1')-2)]
+    #IF ELSE here is for some .did that were generated with a sequence with 'Reference Refill'
+    if nameBlock.find('Reference Refill') == -1:
+        analysisName = nameBlock[(nameBlock.find('Pressadjust')+19):(nameBlock.find('Identifier 1')-2)]
+    else:
+        analysisName = nameBlock[(nameBlock.find('Reference Refill')+24):(nameBlock.find('Identifier 1') - 2)]
+    print 'Sample ID: ', analysisName
     # Encode as ascii for consistency
     analysisName = analysisName.encode('ascii')
 
@@ -840,7 +845,8 @@ def Isodat_File_Parser(fileName):
     # Pull out the time_t time based on startTime location, seconds since the epoch (Jan 1st, 1970), GMT
     time_t_time = struct.unpack('i',buff[startTime:startTime+4])[0]
     # time_str = time.strftime('%m/%d/%Y %H:%M:%S', time.localtime(time_t_time))
-    time_str = time.strftime('%m/%d/%Y', time.localtime(time_t_time))
+    time_str = time.strftime('%d/%m/%Y', time.localtime(time_t_time))
+    print 'Date :', time_str
 
 
     return voltRef_raw, voltSam_raw, d13C_final, d18O_final, d13C_ref, d18O_ref, analysisName, firstAcq, time_str, pressureVals
