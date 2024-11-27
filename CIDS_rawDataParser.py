@@ -62,7 +62,7 @@ while True:
                         analyses[-1].acqs[-1].d18Oref = d18O_ref
                         analyses[-1].acqs[-1].date = date
                         analyses[-1].acqs[-1].pressureVals = pressureVals
-                        print('Acquisition '+str(acqNum)+ ' successfully imported.')
+                        print('Acquisition '+str(acqNum)+ ' successfully imported.\n')
                 # Catching situation where sample name used in error, so no acqs imported
                 if len(analyses[-1].acqs) == 0:
                     print('No acqs imported for sample ' + analyses[-1].name)
@@ -76,6 +76,7 @@ while True:
                 acqFolder = acqFolder.strip('"')
                 acqFolder = os.path.abspath(acqFolder)
                 if os.path.exists(acqFolder):
+                    os.chdir(acqFolder)
                     break
                 else:
                     print('Invalid folder, please try again ')
@@ -122,7 +123,7 @@ while True:
 
                 # Catches acqs where enough gas did not make it to the bellows in and skips them
                 if voltSam_raw[-1][0] < 7000:
-                    print('Skipping acq ' + str(acqList[i]) + ' from sample ' + rawSampleName + ' because voltage too low on mass 44: ' + str(voltSam_raw[-1][0]))
+                    print 'Skipping acq ' + str(acqList[i]) + ' from sample ' + rawSampleName + ' because voltage too low on mass 44: ' + str(voltSam_raw[-1][0]), '\n'
                     continue
                 if len(analyses) == 0:
                     firstAcq = True
@@ -192,7 +193,7 @@ while True:
                 analyses[-1].acqs[-1].d18Oref = d18O_ref
                 analyses[-1].acqs[-1].date = date
                 analyses[-1].acqs[-1].pressureVals = pressureVals
-                print('Acquisition '+str(acqNum)+ ' successfully imported.')
+                print('Acquisition '+str(acqNum)+ ' successfully imported.\n')
 
         else :
             print('Not a valid mode choice')
@@ -234,7 +235,10 @@ while True:
             if '.csv' not in filePath:
                 print('file must be a .csv format')
                 continue
+            os.chdir(filePath[:filePath.rfind('\\')])
+
             filePath = filePath.strip('"')
+
             filePath = os.path.abspath(filePath)
             print('Importing file... ')
             newAnalyses = CIDS_func.CIDS_importer(filePath)
