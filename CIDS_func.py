@@ -1525,7 +1525,10 @@ def CI_CRF_corrector(analysis, objName):
 
 def CI_ARF_acid_corrector(analysis, objName):
     '''Function to apply the acid correction to an arf value'''
-    acid_correction_dict = {'90': 0.092, '50': 0.040, '25': 0.0}
+    #acid_correction_dict = {'90': 0.092, '50': 0.040, '25': 0.0}
+    acid_correction_dict = {'90': 0.088, '70': 0.066, '50': 0.040, '25': 0.0}
+    # atualizado com info de PETERSEN ET AL. 2019
+
     acid_digestion_correction = acid_correction_dict[str(analysis.rxnTemp)]
     try:
         D47_ARF_acid = analysis.D47_ARF + acid_digestion_correction
