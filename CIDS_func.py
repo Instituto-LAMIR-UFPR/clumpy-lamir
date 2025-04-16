@@ -25,9 +25,11 @@ GC_AZ_ARF = 0.710
 TV04_ARF = 0.655
 # CIT_Carrara
 
+TempConversion_A = 0.0383
+#TempConversion_A = 0.0422
 
-
-
+TempConversion_B = 0.258
+#TempConversion_B = 0.1262
 
 global mass47PblSlope
 mass47PblSlope = 0
@@ -381,7 +383,7 @@ def carb_gas_oxygen_fractionation_acq(instance):
     # Done properly, this should be a function of the d18O of the gas, the reaction T,
     # and the cabonate phase of the analysis, but we're sticking to 90C calcite for now'''
 
-    vsmow_18O=0.0020052
+    vsmow_18O=0.0020052  #IAEA-TECDOC-825 / Baertschi (1976) / Li et al. (1988)
     vpdb_18O = 0 #don't know this right now
     rxnFrac = {'calcite_90': 1.00821, 'calcite_50': 1.0093, 'calcite_25': 1.01025,
     'dolomite_25': 1.01178, 'dolomite_50': 1.01038, 'dolomite_90': 1.009218, 'dolomite_100':1.00913, 'gas_25': 1.0, 'gas_90': 1.0}
@@ -392,9 +394,9 @@ def carb_gas_oxygen_fractionation_acq(instance):
 
     rxnKey = instance.mineral + '_' + str(instance.rxnTemp)
     if instance.useBrand2010:
-        d18O_vpdb = (instance.d18O_gas-30.92)/1.03092
+        d18O_vpdb = (instance.d18O_gas-30.92)/1.03092   #IUPAC / Brand et al. (2014) / Kim et al. (2015)
     else:
-        d18O_vpdb = (instance.d18O_gas-30.86)/1.03086
+        d18O_vpdb = (instance.d18O_gas-30.86)/1.03086   #Friedman and O'Neil (1977) / CIDS Table
 
     d18O_min = ((d18O_vpdb+1000)/rxnFrac[rxnKey])-1000
     return d18O_min
@@ -1544,7 +1546,7 @@ def CI_temp_calibrations(analysis, objName):
     # c = 0.258652-analysis.D47_ARF_acid
     # TKe6 = (-b +np.sqrt(b**2-4*a*c))/(2*a)
     # T_C = np.sqrt(1e6/TKe6)-273.15
-    TKe6 = (analysis.D47_ARF-0.1262)/0.0422
+    TKe6 = (analysis.D47_ARF-TempConversion_B)/TempConversion_A
     if TKe6 > 0:
         T_C = np.sqrt(1e6/TKe6)-273.15
     else:
@@ -1559,7 +1561,7 @@ def CI_D47_to_temp_ARF_90(D47_ARF):
 
     # NEW Boniface 2016 calibration
     # NOTE: Using D47_ARF that is not acid corrected, because this is how Magali does it
-    TKe6 = (D47_ARF-0.1262)/0.0422
+    TKe6 = (D47_ARF-TempConversion_B)/TempConversion_A
 
     # New ARF function, based on Stolper 2015, Bonifacie 2011, Guo 2009, and Ghosh 2006 data
     # projected into ARF using absolute slope
@@ -1584,7 +1586,7 @@ def CI_D47_to_temp_ARF(D47_ARF_acid):
     # NEW Boniface 2016 calibration
     # NOTE: Using D47_ARF that is not acid corrected, because this is how Magali does it
     D47_ARF_90 = D47_ARF_acid- 0.092
-    TKe6 = (D47_ARF_90-0.1262)/0.0422
+    TKe6 = (D47_ARF_90-TempConversion_B)/TempConversion_A
 
     # New ARF function, based on Stolper 2015, Bonifacie 2011, Guo 2009, and Ghosh 2006 data
     # projected into ARF using absolute slope
@@ -1613,7 +1615,7 @@ def CI_temp_to_D47_ARF(T_C):
     # c = 0.258652
     TKe6 = 1e6/(T_C+273.15)**2
     # D47_ARF_acid = a*TKe6**2+b*TKe6+c
-    D47_ARF_90= 0.0422*TKe6 + 0.1262
+    D47_ARF_90= TempConversion_A*TKe6 + TempConversion_B
     D47_ARF_acid = D47_ARF_90 + 0.092
 
     return(D47_ARF_acid)
