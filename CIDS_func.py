@@ -740,8 +740,25 @@ def Isodat_File_Parser(fileName):
         startSamVolt=start+5073+i*685 #observed location of sample gas voltage cycles
         voltSam_raw.append(struct.unpack('7d',buff[startSamVolt:(startSamVolt+7*8)]))
 
-        startSamVolt=start+1344+i*160 #observed location of sample gas voltage cycles
-        voltSam_raw.append(struct.unpack('6d',buff[startSamVolt:(startSamVolt+6*8)]))
+    #1.1 Deleting voltage 47.5 (column 4) from tuple voltSam_raw and voltRef_raw
+
+    voltSam_raw_l = []
+    voltRef_raw_l = []
+    voltSam_raw2 = []
+    voltRef_raw2 = []
+
+    for i in range(8):
+        voltRef_raw_l.append(list(voltRef_raw[i]))
+        del voltRef_raw_l[i][4]
+        voltRef_raw2.append(tuple(voltRef_raw_l[i]))
+
+    #print 'VOLTAGES \n Ref: ', voltRef_raw2
+
+    for i in range(7):
+        voltSam_raw_l.append(list(voltSam_raw[i]))
+        del voltSam_raw_l[i][4]
+        voltSam_raw2.append(tuple(voltSam_raw_l[i]))
+    #print 'Sam: ', voltSam_raw2
 
     #2. Getting d13C and d18O data for each cycle
     startEval=buff.find('CDualInletEvaluatedDataCollect') #rough guess of starting position
@@ -819,7 +836,7 @@ def Isodat_File_Parser(fileName):
         analysisName = nameBlock[(nameBlock.find('Reference Refill')+24):(nameBlock.find('Identifier 1') - 2)]
     print 'Sample ID: ', analysisName
     # Encode as ascii for consistency
-    analysisName = analysisName.encode('ascii')
+    analysisName = analysisName.encode('utf-8')
 
     # 3.4 background values, and Pressure values
     #find start of block with background values
@@ -848,8 +865,7 @@ def Isodat_File_Parser(fileName):
     time_str = time.strftime('%d/%m/%Y', time.localtime(time_t_time))
     print 'Date :', time_str
 
-
-    return voltRef_raw, voltSam_raw, d13C_final, d18O_final, d13C_ref, d18O_ref, analysisName, firstAcq, time_str, pressureVals
+    return voltRef_raw2, voltSam_raw2, d13C_final, d18O_final, d13C_ref, d18O_ref, analysisName, firstAcq, time_str, pressureVals
 
 def Isodat_File_Parser_CAF(fileName):
     '''Reads in a .caf file (Classical aquisition file), returns the raw voltages for
