@@ -11,7 +11,7 @@ from scipy.optimize import minimize
 
 
 print('Welcome to the carbonate clumped isotope importer/exporter')
-filePath = raw_input('autoCIDS file to process? ').rstrip()
+filePath = input('autoCIDS file to process? ').rstrip()
 filePath = os.path.abspath(filePath)
 analyses = CIDS_func.CIDS_importer(filePath)
 print('Analyses successfully imported')
@@ -44,7 +44,7 @@ def hg_slope_calculator(pblGuess):
     CIDS_func.Set_mass_47_pbl(mass47slope)
     # Step 2, calculate new hg line with this
     hg_slope = abs(CIDS_func.CI_hg_slope_finder(hgs))
-    print(str(mass47slope) + ','+ str(hg_slope))
+    print((str(mass47slope) + ','+ str(hg_slope)))
 
     return hg_slope
 
@@ -71,14 +71,14 @@ all_D47_ARF_errors_after = np.asarray([i.D47_error_all for i in analyses])
 
 plt.figure()
 plt.plot(all_D47_ARF_before, (all_D47_ARF_after-all_D47_ARF_before),'o')
-plt.xlabel(ur'$\mathrm{\Delta_{47, ARF}, \/before\/ PBL\/ correction \/(\u2030)}$')
-plt.ylabel(ur'$\mathrm{(\Delta_{47,after} - \Delta_{47,before}) (\u2030)}$')
+plt.xlabel(r'$\mathrm{\Delta_{47, ARF}, \/before\/ PBL\/ correction \/(\u2030)}$')
+plt.ylabel(r'$\mathrm{(\Delta_{47,after} - \Delta_{47,before}) (\u2030)}$')
 plt.show()
 
 plt.figure()
 plt.errorbar(all_D47_ARF_before, (all_D47_ARF_after-all_D47_ARF_before),yerr = all_D47_ARF_errors_before, fmt='o')
-plt.xlabel(ur'$\mathrm{\Delta_{47, ARF}, \/before\/ PBL\/ correction \/(\u2030)}$')
-plt.ylabel(ur'$\mathrm{(\Delta_{47,after} - \Delta_{47,before}) (\u2030)}$')
+plt.xlabel(r'$\mathrm{\Delta_{47, ARF}, \/before\/ PBL\/ correction \/(\u2030)}$')
+plt.ylabel(r'$\mathrm{(\Delta_{47,after} - \Delta_{47,before}) (\u2030)}$')
 plt.show()
 
 

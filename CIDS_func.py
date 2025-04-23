@@ -9,7 +9,7 @@ import os
 import struct
 import time
 import xlcor47_modified
-from scipy.optimize import root
+#from scipy.optimize import root
 
 
 
@@ -64,7 +64,7 @@ class CI_AVERAGE(object):
         self.name = name
 
     def __get__(self,instance,cls):
-        if len(instance.acqs)>=1:
+        if len(instance.acqs) >= 1:
             if self.name in ['d13C','d13C_stdev','d18O_gas','d18O_stdev', 'd45', 'd46', 'd47','d47_stdev',
             'D47_raw','D47_stdev', 'D47_sterr','d48','d48_stdev', 'd49','D48_raw','D48_stdev', 'd13C_brand',
             'd18O_brand', 'd18O_taylor', 'd13C_taylor']:
@@ -417,7 +417,7 @@ def CIDS_parser(filePath):
 
 
 
-    fileReader = csv.reader(open(filePath, 'rU'), dialect='excel')
+    fileReader = csv.reader(open(filePath, 'r'), dialect='excel')
     for line in fileReader:
     #storing all lines in a list for reference. Won't need this eventually
       CIDS.append(line)
@@ -489,7 +489,7 @@ def CIDS_parser(filePath):
       else:
         for s in line:
           if "Background:" in s:
-            backgrounds=re.findall('[0-9]{0,20}\.[0-9]{0,10}', s)
+            backgrounds=re.findall("[0-9]{0,20}.[0-9]{0,10}", s)
             analyses[-1].acqs[-1].background = [float(t) for t in backgrounds]
 
     return analyses
@@ -507,12 +507,12 @@ def CIDS_cleaner(analyses, checkForOutliers = False):
     temp=8
     lowAcqs= [k for k in analyses if len(k.acqs)<temp]
     if not lowAcqs:
-        print 'All analyses have at least %d acquistions' % temp
+        print('All analyses have at least %d acquistions' % temp)
 
     else:
-        print 'analyses with too few acqs are:'
-        print '\n'.join(['Sample '+ str(k.num)+ ': '+ k.name +' has ' + str(len(k.acqs)) + ' acquisitions' for k in lowAcqs])
-        print 'deleting those with just one acq...'
+        print('analyses with too few acqs are:')
+        print('\n'.join(['Sample '+ str(k.num)+ ': '+ k.name +' has ' + str(len(k.acqs)) + ' acquisitions' for k in lowAcqs]))
+        print('deleting those with just one acq...')
         for i in lowAcqs:
             if len(i.acqs) < 3:
                 analyses.remove(i)
@@ -532,7 +532,7 @@ def CIDS_cleaner(analyses, checkForOutliers = False):
 
     if checkForOutliers:
         Check_for_wrong_acqs(analyses)
-    print 'All analyses are cleaned, and voltages converted to arrays'
+    print('All analyses are cleaned, and voltages converted to arrays')
 
     return analyses
 
@@ -551,7 +551,7 @@ def Check_for_wrong_acqs(analyses, showPlots = True):
         G_2sided = d46_res.max()/d46_temp.std()
 
         if G_2sided > crit_vals_2sided[len(d46_temp)]:
-            print('Sample {0} fails Grubbs\' outlier test at acq {1} with {2}-alpha significance'.format(i, np.argmax(d46_res), alpha))
+            print(('Sample {0} fails Grubbs\' outlier test at acq {1} with {2}-alpha significance'.format(i, np.argmax(d46_res), alpha)))
             if showPlots:
                 fig2, ax2 = plt.subplots(4)
                 acq_temp = acqs_temp[np.argmax(d46_res)]
@@ -567,21 +567,21 @@ def Check_for_wrong_acqs(analyses, showPlots = True):
 
                 fig0, ax0 = plt.subplots()
                 # Plot d46
-                ax0.plot(np.asarray(range(len(acqs_temp)))+analyses[i].skipFirstAcq,d46_temp, 'bo')
+                ax0.plot(np.asarray(list(range(len(acqs_temp))))+analyses[i].skipFirstAcq,d46_temp, 'bo')
                 # change axis color to blue
-                ax0.set_ylabel(ur'$\delta 46$', {'color': 'b'})
+                ax0.set_ylabel(r'$\delta 46$', {'color': 'b'})
                 for tl in ax0.get_yticklabels():
                     tl.set_color('b')
                 # Plot d47
                 ax1 = ax0.twinx()
-                ax1.plot(np.asarray(range(len(acqs_temp)))+analyses[i].skipFirstAcq,[j.d45 for j in acqs_temp], 'rd')
+                ax1.plot(np.asarray(list(range(len(acqs_temp))))+analyses[i].skipFirstAcq,[j.d45 for j in acqs_temp], 'rd')
                 # change axis color to red
-                ax1.set_ylabel(ur'$\delta 45$', {'color': 'r'})
+                ax1.set_ylabel(r'$\delta 45$', {'color': 'r'})
                 for tl2 in ax1.get_yticklabels():
                     tl2.set_color('r')
                 ax0.set_xlabel('cycle')
 
-            delChoice = raw_input('Delete cycle {0}? (y/n) '.format(np.argmax(d46_res))).lower()
+            delChoice = input('Delete cycle {0}? (y/n) '.format(np.argmax(d46_res))).lower()
             if delChoice == 'y':
                 del analyses[i].acqs[np.argmax(d46_res)+analyses[i].skipFirstAcq]
             plt.close('all')
@@ -591,7 +591,7 @@ def Check_for_wrong_acqs(analyses, showPlots = True):
 def FlatList_exporter(analyses,fileName, displayProgress = False):
     '''Exports a CSV file that is the same format as a traditional flat list'''
 
-    export=open(fileName + '.csv','wb')
+    export=open(fileName + '.csv','w', newline='')
     wrt=csv.writer(export,dialect='excel')
     wrt.writerow(['User','date','Type','Sample ID','spec #\'s', 'acqs', '100% bellow P (mbar)','d13C (vpdb)','d13C_stdev','d18O_gas (vsmow)','d18O_mineral (vpdb)',
     'd18O_stdev','d47','d47_stdev','D47 (v. Oz)','D47_stdev','D47_sterr','d48', 'd48_stdev','D48','D48_stdev', 'hg_slope', 'hg_intercept','D47_CRF', 'D47_ARF',
@@ -604,7 +604,7 @@ def FlatList_exporter(analyses,fileName, displayProgress = False):
             item.D47_CRF, np.around(item.D47_ARF, 5), np.around(item.D47_error_all, 5), item.mineral, item.rxnTemp, item.D47_ARF_acid, item.T_D47_ARF, item.D47_ARF_stdCorr, item.D48_excess, item.d13C_brand, item.d18O_brand])
             counter += 1
             if ((counter * 100)*100) % (len(analyses)*100) == 0:
-                print(str((counter*100)/len(analyses)) + '% done')
+                print((str((counter*100)/len(analyses)) + '% done'))
     else:
         for item in analyses:
             wrt.writerow([item.user, item.date, item.type, item.name, item.num, (len(item.acqs)-item.skipFirstAcq), item.acqs[0].pressureVals[0],item.d13C, item.d13C_stdev, item.d18O_gas, item.d18O_min,
@@ -618,7 +618,7 @@ def CIDS_exporter(analyses, fileName, displayProgress = False):
     Python CIDS files are also importable, to load all important sample info
     back into the program'''
 
-    export=open(fileName + '.csv','wb')
+    export=open(fileName + '.csv','w', newline='')
     wrt=csv.writer(export,dialect='excel')
     for analysis in analyses:
         wrt.writerow(['__NewSample__'])
@@ -650,7 +650,7 @@ def CIDS_exporter(analyses, fileName, displayProgress = False):
 
 def CIDS_importer(filePath, displayProgress = False):
     '''Imports voltage and analysis data that were exported using the CIDS_exporter function'''
-    fileImport = open(filePath,'rU')
+    fileImport = open(filePath,'r')
     fileReader = csv.reader(fileImport, dialect='excel')
     analyses = []
 
@@ -719,9 +719,9 @@ def Isodat_File_Parser(fileName):
     finally:
         f.close()
 
-    #1. Getting raw voltage data
+        #1. Getting raw voltage data
     #Searching for the start of the raw voltages
-    start=buff.find('CIntensityData')
+    start = buff.find("CIntensityData".encode())
     keys=[]
     voltRef_raw=[]
     voltSam_raw=[]
@@ -763,7 +763,7 @@ def Isodat_File_Parser(fileName):
     #print 'Sam: ', voltSam_raw2
 
     #2. Getting d13C and d18O data for each cycle
-    startEval=buff.find('CDualInletEvaluatedDataCollect') #rough guess of starting position
+    startEval=buff.find('CDualInletEvaluatedDataCollect'.encode()) #rough guess of starting position
     d13C=[]
     d18O=[]
     # Exact position is not consistent, so running searching over a 200 byte range for the right start point
@@ -808,14 +808,14 @@ def Isodat_File_Parser(fileName):
 
     #3. Pulling out other auxiliary info
     # 3.1 Ref gas isotope composition
-    startRefGas=buff.find('CEvalDataSecStdTransferPart')
+    startRefGas=buff.find('CEvalDataSecStdTransferPart'.encode())
 
     d13C_ref=struct.unpack('d',buff[startRefGas+203:startRefGas+203+8])[0]
     d18O_ref=struct.unpack('d',buff[startRefGas+423:startRefGas+423+8])[0]
 
     # 3.2 whether or not method is a CO2_multiply or a *_start
     firstAcq = False
-    startMethod = buff.find('CDualInletBlockData')
+    startMethod = buff.find('CDualInletBlockData'.encode())
     methodBlock = buff[startMethod-120:startMethod-20].decode('utf-16')
     # if 'CO2_multiply_16V' in methodBlock:
     #     firstAcq = False
@@ -827,7 +827,7 @@ def Isodat_File_Parser(fileName):
 
     # 3.3 sample name
     # Find start of block with sample name
-    startName = buff.find('CSeqLineIndexData')
+    startName = buff.find('CSeqLineIndexData'.encode())
     # Rough guess of range where analysis name is, accounting for a large variation in length
     nameBlock = buff[startName+200:startName+400].decode('utf-16')
     #Exact name based on locations of unicode strings directly before and after
@@ -836,18 +836,18 @@ def Isodat_File_Parser(fileName):
         analysisName = nameBlock[(nameBlock.find('Pressadjust')+19):(nameBlock.find('Identifier 1')-2)]
     else:
         analysisName = nameBlock[(nameBlock.find('Reference Refill')+24):(nameBlock.find('Identifier 1') - 2)]
-    print 'Sample ID: ', analysisName
+    print('Sample ID: ', analysisName)
     # Encode as ascii for consistency
-    analysisName = analysisName.encode('utf-8')
+    #analysisName = analysisName.encode()
 
     # 3.4 background values, and Pressure values
     #find start of block with background values
-    startBackground = buff.find('CISLScriptMessageData')
-    stopBackground = buff.find('CMeasurmentErrors')
+    startBackground = buff.find('CISLScriptMessageData'.encode())
+    stopBackground = buff.find('CMeasurmentErrors'.encode())
     #Note incorrect spelling of 'measurement' is intentional
     backgroundBlock = buff[startBackground+32:stopBackground].decode('utf-16', errors = 'ignore')
     # Pulling floats out of block
-    backgroundVals = re.findall('[0-9]{1,20}\.[0-9]{1,10}', backgroundBlock)
+    backgroundVals = re.findall("[0-9]{1,20}.[0-9]{1,10}", backgroundBlock)
     # Only want to take P values if they exist, bc a new acq with Brett's modified code
     if '100precent' in backgroundBlock:
         # pressure vals are first, and last two in block
@@ -860,12 +860,12 @@ def Isodat_File_Parser(fileName):
 
     # 3.5 Date and Time
     # Find the start of Ctime block
-    startTime = buff.find('CTimeObject')+49
+    startTime = buff.find('CTimeObject'.encode())+49
     # Pull out the time_t time based on startTime location, seconds since the epoch (Jan 1st, 1970), GMT
     time_t_time = struct.unpack('i',buff[startTime:startTime+4])[0]
     # time_str = time.strftime('%m/%d/%Y %H:%M:%S', time.localtime(time_t_time))
     time_str = time.strftime('%d/%m/%Y', time.localtime(time_t_time))
-    print 'Date :', time_str
+    print('Date :', time_str)
 
     return voltRef_raw2, voltSam_raw2, d13C_final, d18O_final, d13C_ref, d18O_ref, analysisName, firstAcq, time_str, pressureVals
 
@@ -881,7 +881,7 @@ def Isodat_File_Parser_CAF(fileName):
 
     #1. Getting raw voltage data
     #Searching for the start of the raw voltages
-    start=buff.find('CDualInletRawData')
+    start=buff.find('CDualInletRawData'.encode())
     keys=[]
     voltRef_raw=[]
     voltSam_raw=[]
@@ -903,11 +903,11 @@ def Isodat_File_Parser_CAF(fileName):
         thisStart = start + 2 + i
         theseVolts = np.array(struct.unpack('6d', buff[thisStart:(thisStart+6*8)]))
         if (theseVolts > 1e4).all() and (theseVolts < 1e6).all():
-            print('Acceptable sequence at: {0}'.format(thisStart))
+            print(('Acceptable sequence at: {0}'.format(thisStart)))
             voltTest.append(theseVolts)
 
     #2. Getting d13C and d18O data for each cycle
-    startEval=buff.find('CDualInletEvaluatedDataCollect') #rough guess of starting position
+    startEval=buff.find('CDualInletEvaluatedDataCollect'.encode()) #rough guess of starting position
     d13C=[]
     d18O=[]
     # Exact position is not consistent, so running searching over a 200 byte range for the right start point
@@ -952,14 +952,14 @@ def Isodat_File_Parser_CAF(fileName):
 
     #3. Pulling out other auxiliary info
     # 3.1 Ref gas isotope composition
-    startRefGas=buff.find('CEvalDataSecStdTransferPart')
+    startRefGas=buff.find('CEvalDataSecStdTransferPart'.encode())
 
     d13C_ref=struct.unpack('d',buff[startRefGas+203:startRefGas+203+8])[0]
     d18O_ref=struct.unpack('d',buff[startRefGas+423:startRefGas+423+8])[0]
 
     # 3.2 whether or not method is a CO2_multiply or a *_start
     firstAcq = False
-    startMethod = buff.find('CDualInletBlockData')
+    startMethod = buff.find('CDualInletBlockData'.encode())
     methodBlock = buff[startMethod-120:startMethod-20].decode('utf-16')
     # if 'CO2_multiply_16V' in methodBlock:
     #     firstAcq = False
@@ -971,7 +971,7 @@ def Isodat_File_Parser_CAF(fileName):
 
     # 3.3 sample name
     # Find start of block with sample name
-    startName = buff.find('CSeqLineIndexData')
+    startName = buff.find('CSeqLineIndexData'.encode())
     # Rough guess of range where analysis name is, accounting for a large variation in length
     nameBlock = buff[startName+200:startName+400].decode('utf-16')
     #Exact name based on locations of unicode strings directly before and after
@@ -981,12 +981,12 @@ def Isodat_File_Parser_CAF(fileName):
 
     # 3.4 background values, and Pressure values
     #find start of block with background values
-    startBackground = buff.find('CISLScriptMessageData')
-    stopBackground = buff.find('CMeasurmentErrors')
+    startBackground = buff.find('CISLScriptMessageData'.encode())
+    stopBackground = buff.find('CMeasurmentErrors'.encode())
     #Note incorrect spelling of 'measurement' is intentional
     backgroundBlock = buff[startBackground+32:stopBackground].decode('utf-16', errors = 'ignore')
     # Pulling floats out of block
-    backgroundVals = re.findall('[0-9]{1,20}\.[0-9]{1,10}', backgroundBlock)
+    backgroundVals = re.findall("[0-9]{1,20}.[0-9]{1,10}", backgroundBlock)
     # Only want to take P values if they exist, bc a new acq with Brett's modified code
     if '100precent' in backgroundBlock:
         # pressure vals are first, and last two in block
@@ -999,7 +999,7 @@ def Isodat_File_Parser_CAF(fileName):
 
     # 3.5 Date and Time
     # Find the start of Ctime block
-    startTime = buff.find('CTimeObject')+49
+    startTime = buff.find('CTimeObject'.encode())+49
     # Pull out the time_t time based on startTime location, seconds since the epoch (Jan 1st, 1970), GMT
     time_t_time = struct.unpack('i',buff[startTime:startTime+4])[0]
     # time_str = time.strftime('%m/%d/%Y %H:%M:%S', time.localtime(time_t_time))
@@ -1068,7 +1068,7 @@ def Get_gases(analyses):
                     item.type = 'hg'
             else :
                 while True:
-                    choice = raw_input('Is acq num: ' + str(item.num) + ' with name: ' + item.name + ' a (h)eated gas, an (e)quilibrated gas?, or (s)kip? ')
+                    choice = input('Is acq num: ' + str(item.num) + ' with name: ' + item.name + ' a (h)eated gas, an (e)quilibrated gas?, or (s)kip? ')
                     if choice.lower() == 'h':
                         item.D47nominal = ''
                         item.TCO2 = 1000
@@ -1090,7 +1090,7 @@ def Get_gases(analyses):
 def Daeron_exporter(analyses, fileName):
     '''Exports analyses in a csv that is formatted for Matthieu Daeron's xlcor47 script'''
 
-    export=open(fileName +'_daeron'+ '.csv','wb')
+    export=open(fileName +'_daeron'+ '.csv','w', newline='')
     wrt=csv.writer(export,dialect='excel')
     for item in analyses:
         if np.isnan(item.TCO2):
@@ -1103,7 +1103,7 @@ def Daeron_exporter(analyses, fileName):
 def Daeron_exporter_crunch(analyses, fileName):
     '''Exports analyses in a csv that is formatted for Matthieu Daeron's online ClumpyCrunch 1.0 script'''
 
-    export=open(fileName +'_daeron'+ '.csv','wb')
+    export=open(fileName +'_daeron'+ '.csv','w', newline='')
     wrt=csv.writer(export,dialect='excel')
     wrt.writerow(['type','ID', 'd45', 'd46', 'd47', 'd48', 'd49', 'sd47', 'D17O', 'd13Cwg_pdb', 'd18Owg_pdbco2', 'D47raw', 'TeqCO2', 'D47nominal'])
     for item in analyses:
@@ -1122,17 +1122,17 @@ def Pressure_Baseline_Processer(fileFolder):
     '''Pulls raw intensity data out of a folder of peak scans'''
 
     fileList = [i for i in os.listdir(fileFolder) if '.csv' in i] #copies all csv pbl files in directory
-    print fileList
+    print(fileList)
     day = '4-22-14' # TODO: make this I/O eventually
     fileList = [i for i in fileList if day in i] #only the csv files from certain days
     A=[]
-    print fileList
+    print(fileList)
 
     #First read in the csv files to numpy arrays
     for i in fileList:
         A.append([])
         fileName = fileFolder+i
-        fileReader = csv.reader(open(fileName, 'rU'), dialect='excel')
+        fileReader = csv.reader(open(fileName, 'r'), dialect='excel')
         for line in fileReader:
             A[-1].append(line)
         A[-1].pop(0) #remove the first line with the headers
@@ -1279,7 +1279,7 @@ def CI_averages_valued_individual(analysis, objName):
     elif valName in ['d18O']:
         valName += '_gas'
 
-    acqsToUse = range(len(analysis.acqs))
+    acqsToUse = list(range(len(analysis.acqs)))
 
     if analysis.skipFirstAcq:
         del acqsToUse[0]
@@ -1307,12 +1307,12 @@ def CI_comparer(analyses1, analyses2):
     for i in range(len(analyses1)):
         for j in range(len(analyses1[i].acqs)):
             if not analyses1[i].acqs[j].D47_raw == analyses2[i].acqs[j].D47_raw:
-                print('Acq num {1} from analysis number {0} from comparison does not agree in D47'.format(i,j))
-                print('analyses1 D47 = {0:.3f}, analyses2 D47 = {1:.3f}'.format(analyses1[i].acqs[j].D47_raw, analyses2[i].acqs[j].D47_raw))
+                print(('Acq num {1} from analysis number {0} from comparison does not agree in D47'.format(i,j)))
+                print(('analyses1 D47 = {0:.3f}, analyses2 D47 = {1:.3f}'.format(analyses1[i].acqs[j].D47_raw, analyses2[i].acqs[j].D47_raw)))
                 equalSoFar = False
         if not analyses1[i].D47_stdev == analyses2[i].D47_stdev:
-            print('Sample number {0} from data sets do not agree in D47_stdev'.format(i))
-            print('1. D47_stdev = {0:.3f}, 2. D47_stdev = {0:.3f}'.format(analyses1[i].D47_stdev, analyses2[i].D48_stdev))
+            print(('Sample number {0} from data sets do not agree in D47_stdev'.format(i)))
+            print(('1. D47_stdev = {0:.3f}, 2. D47_stdev = {0:.3f}'.format(analyses1[i].D47_stdev, analyses2[i].D48_stdev)))
 
     if equalSoFar:
         print('Data sets are equivalent')
@@ -1331,7 +1331,7 @@ def Get_types_auto(analyses):
     stds are Carrara, NBS-19, TV04, or TV03, all gases have 'BOC' in name, and all egs have '25' in name)'''
 
     print('Automatically assigning analyses types ')
-    choice = raw_input('(s)top process, see (n)aming guidelines, or hit any other key to continue ').lower()
+    choice = input('(s)top process, see (n)aming guidelines, or hit any other key to continue ').lower()
     if choice == 's':
         return(analyses)
     elif choice == 'n':
@@ -1375,7 +1375,7 @@ def Get_types_manual(analyses):
     print('Manually assigning analyses types ')
     for i in range(len(analyses)):
         if analyses[i].type not in ['eg', 'hg', 'sample', 'std']:
-            typeChoice = raw_input('Type for: ' + analyses[i].name + ' -> (e)g, (h)g, (s)ample, or s(t)d?').lower()
+            typeChoice = input('Type for: ' + analyses[i].name + ' -> (e)g, (h)g, (s)ample, or s(t)d?').lower()
             if typeChoice == 'e':
                 analyses[i].type = 'eg'
                 analyses[i].rxnTemp = 25
@@ -1417,11 +1417,11 @@ def CI_CRF_data_corrector(analyses, showFigures = True):
     D47_raw_hgs_model = d47_hgs*hg_slope+hg_intercept
     if showFigures:
         plt.figure(0)
-        plt.figure(0).hold(True)
+        #plt.figure(0).hold(True)
         plt.errorbar(d47_hgs, D47_raw_hgs, xerr = d47_stdev_hgs, yerr = D47_sterr_hgs, fmt = 'bo')
         plt.plot(d47_hgs, D47_raw_hgs_model, '-')
-        plt.ylabel(ur'$\Delta_{47} \/ (\u2030)$')
-        plt.xlabel(ur'$\delta^{47} \/ (\u2030)$')
+        plt.ylabel(r'$\Delta_{47} \/ (‰)$')
+        plt.xlabel(r'$\delta^{47} \/ (‰)$')
         plt.show()
 
         # Calculation of the D47_CRF values are done automatically given its definition, based on the global hg slope and int
@@ -1430,14 +1430,14 @@ def CI_CRF_data_corrector(analyses, showFigures = True):
         stds_TV03 = [i for i in analyses if (i.type == 'std' and 'tv03' in i.name.lower() and not i.D48_excess)]
         stds_GC_AZ = [i for i in analyses if (i.type == 'std' and 'gc-az' in i.name.lower() and not i.D48_excess)]
         plt.figure(1)
-        plt.figure(1).hold(True)
+        #plt.figure(1).hold(True)
         plt.errorbar([CIT_Carrara_CRF for i in range(len(stds_Carrara))],[j.D47_CRF-CIT_Carrara_CRF for j in stds_Carrara], yerr = [k.D47_sterr for k in stds_Carrara], fmt = 'o')
         plt.errorbar([TV03_CRF for i in range(len(stds_TV03))],[j.D47_CRF-TV03_CRF for j in stds_TV03], yerr = [k.D47_sterr for k in stds_TV03], fmt = 'o')
         plt.errorbar([GC_AZ_CRF for i in range(len(stds_GC_AZ))],[j.D47_CRF-GC_AZ_CRF for j in stds_GC_AZ], yerr = [k.D47_sterr for k in stds_GC_AZ], fmt = 'o')
 
         plt.xlim(0.3, 0.7)
-        plt.xlabel(ur'$\mathrm{}\Delta_{47, CRF} \/ (\u2030)}$')
-        plt.ylabel(ur'$\mathrm{\Delta_{47, measured}-\Delta_{47, expected} \/ (\u2030)}$')
+        plt.xlabel(r'$\mathrm{\Delta_{47, CRF} \/ (‰)}$')
+        plt.ylabel(r'$\mathrm{\Delta_{47, measured}-\Delta_{47, expected} \/ (‰)}$')
         plt.show()
 
     return
@@ -1465,7 +1465,7 @@ def CI_48_excess_checker(analyses, showFigures = False):
         D48_excess_value = i.D48_raw - D48_predicted
         if np.abs(D48_excess_value) > D48_excess_tolerance:
             i.D48_excess = True
-            print('D48 excess found for sample: ' + i.name + ', ' + str(i.num))
+            print(('D48 excess found for sample: ' + i.name + ', ' + str(i.num)))
 
 
     if showFigures:
@@ -1479,16 +1479,16 @@ def CI_48_excess_checker(analyses, showFigures = False):
         xerr = np.asarray([i.d48_stdev for i in hgs]), yerr = np.asarray([i.D48_stdev for i in hgs]),
         fmt = 'bo')
         plt.plot(d48s, D48s_model,'r-')
-        plt.xlabel(ur'$\delta^{48} \/ ( \u2030 $)')
-        plt.ylabel(ur'$\Delta_{48} \/ ( \u2030 $)')
+        plt.xlabel(r'$\delta^{48} \/ ( \u2030 $)')
+        plt.ylabel(r'$\Delta_{48} \/ ( \u2030 $)')
 
         # Plotting all samples in D47 vs d47 space,
         plt.subplot(2,1,2)
         plt.errorbar(np.asarray([i.d47 for i in analyses]), np.asarray([i.D47_raw for i in analyses]),
         xerr = np.asarray([i.d47_stdev for i in analyses]), yerr = np.asarray([i.D47_sterr for i in analyses]),
         fmt = 'o')
-        plt.xlabel(ur'$\delta^{47} \/ ( \u2030 $)')
-        plt.ylabel(ur'$\Delta_{47} \/ ( \u2030 $)')
+        plt.xlabel(r'$\delta^{47} \/ ( \u2030 $)')
+        plt.ylabel(r'$\Delta_{47} \/ ( \u2030 $)')
         # plt.savefig('D48_line.pdf', format = 'pdf')
         plt.show()
 
@@ -1502,12 +1502,12 @@ def Carrara_carbonate_correction_ARF(analysis, objName):
     else:
         return(analysis.D47_ARF_acid - CarraraCorrection)
 
-def Carrara_carbonate_correction_CRF(analysis, objName):
+"""def Carrara_carbonate_correction_CRF(analysis, objName):
     ''' Function to apply a linear correction to carbonates based on CIT Carrara'''
     if analysis.type in ['hg', 'eg']:
         return(analysis.D47_CRF)
     else:
-        return(analysis.D47_CRF - CarraraCorrection_CRF)
+        return(analysis.D47_CRF - CarraraCorrection_CRF)"""
 
 def CI_CRF_corrector(analysis, objName):
     '''Function to apply the heated gas correction in the Caltech Ref Frame'''
@@ -1743,7 +1743,7 @@ def Daeron_data_creator(analyses, useCarbStandards = False):
 def Daeron_data_processer(analyses, showFigures = False):
     '''Performs Daeron-style correction to put clumped isotope data into the ARF'''
     useCarbStandards = False
-    askCarbStandards = raw_input('Use carbonate standards for ARF correction? (y/n) ').lower()
+    askCarbStandards = input('Use carbonate standards for ARF correction? (y/n) ').lower()
     if askCarbStandards == 'y':
         useCarbStandards = True
 
@@ -1769,15 +1769,15 @@ def Daeron_data_processer(analyses, showFigures = False):
     global CarraraCorrection
     CarraraCorrection = np.mean([i.D47_ARF_acid for i in stds_Carrara]) - CIT_Carrara_ARF
     TV04_Correction = np.mean([i.D47_ARF_acid for i in stds_TV04]) - TV04_ARF
-    print('Carrara Correction is: '+ str(CarraraCorrection))
-    print('TV04 Correction is: '+ str(TV04_Correction))
-    stdCorrChoice = raw_input('Use (c)arrara, (t)V04, or (b)oth for carbonate std correction? ').lower()
+    print(('Carrara Correction is: '+ str(CarraraCorrection)))
+    print(('TV04 Correction is: '+ str(TV04_Correction)))
+    stdCorrChoice = input('Use (c)arrara, (t)V04, or (b)oth for carbonate std correction? ').lower()
     if stdCorrChoice == 't':
         CarraraCorrection = TV04_Correction
     elif stdCorrChoice == 'b':
         # if both, use average of both corrections, weighted by number of samples
         bothCorrection = (CarraraCorrection*len(stds_Carrara) + TV04_Correction*len(stds_TV04))/(len(stds_Carrara)+ len(stds_TV04))
-        print('both correction (weighted average) is: '+ str(bothCorrection))
+        print(('both correction (weighted average) is: '+ str(bothCorrection)))
         CarraraCorrection = bothCorrection
     return
 
@@ -1794,8 +1794,8 @@ def ExportSequence(analyses, pbl = False):
     if pbl:
         exportNameFlatlist += '_pblCorr'
     FlatList_exporter(analyses,exportNameFlatlist)
-    print 'Analyses successfully exported in: ', os.getcwd()
-    doDaeron = raw_input('Export analyses for a Daeron-style ARF reduction (y/n)? ')
+    print('Analyses successfully exported in: ', os.getcwd())
+    doDaeron = input('Export analyses for a Daeron-style ARF reduction (y/n)? ')
     if doDaeron.lower() == 'y':
         exportNameDaeron = 'autoDaeronExport'
         Get_gases(analyses)
@@ -1823,7 +1823,7 @@ def ExportSequence_named(analyses, fileName, pbl = False):
     Get_gases(analyses)
     Get_carbonate_stds(analyses)
     Daeron_exporter_crunch(analyses,exportNameDaeron)
-    print 'Analyses successfully exported in: ', os.getcwd()
+    print('Analyses successfully exported in: ', os.getcwd())
 
     return
 
@@ -1857,7 +1857,7 @@ def plot_T_scale(axis, in_ARF = True):
             y2_temps.append('')
     # axis2 = axis.twinx()
     # axis2.grid(False)
-    axis2.set_ylabel(ur'Temperature ($^{\circ}$C)')
+    axis2.set_ylabel(r'Temperature ($^{\circ}$C)')
     axis2.set_yticklabels(y2_temps)
     return
 
@@ -1990,7 +1990,7 @@ def lsqfitma(X, Y):
 
     """
 
-    X, Y = map(np.asanyarray, (X, Y))
+    X, Y = list(map(np.asanyarray, (X, Y)))
 
     # Determine the size of the vector.
     n = len(X)
@@ -2071,7 +2071,7 @@ def lsqcubic(X, Y, sX, sY, tl=1e-6):
 
     """
 
-    X, Y = map(np.asanyarray, (X, Y))
+    X, Y = list(map(np.asanyarray, (X, Y)))
 
     # Find the number of data points and make one time calculations:
     n = len(X)
