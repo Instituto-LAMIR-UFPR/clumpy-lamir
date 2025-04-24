@@ -23,6 +23,10 @@ NBS_19_ARF = CIT_Carrara_ARF
 TV03_ARF = 0.635 + 0.092
 GC_AZ_ARF = 0.710
 TV04_ARF = 0.655
+ETH_1_ARF = 0.2052
+ETH_2_ARF = 0.2085
+ETH_3_ARF = 0.6132
+ETH_4_ARF = 0.4511
 # CIT_Carrara
 
 TempConversion_A = 0.0383
@@ -1346,7 +1350,7 @@ def Get_types_auto(analyses):
                 continue
             else:
                 name = analyses[i].name.lower()
-                if ('carrara' in name) or ('tv03' in name) or ('nbs-19' in name) or ('gc-az' in name) or ('gc_az' in name) or ('tv04' in name):
+                if ('cit carrara' in name) or ('tv03' in name) or ('nbs-19' in name) or ('nbs19' in name) or ('gc-az' in name) or ('gc_az' in name) or ('tv04' in name) or ('eth-1' in name) or ('eth-2' in name) or ('eth-3' in name) or ('eth-4' in name):
                     analyses[i].type = 'std';
                     continue
                 elif ('boc' in name):
@@ -1355,7 +1359,7 @@ def Get_types_auto(analyses):
                         analyses[i].rxnTemp = 25
                         analyses[i].mineral = 'gas'
                         continue
-                    elif (len(name) < 15):
+                    elif (len(name) < 50):
                         analyses[i].type = 'hg'
                         analyses[i].rxnTemp = 25
                         analyses[i].mineral = 'gas'
@@ -1500,7 +1504,7 @@ def Carrara_carbonate_correction_ARF(analysis, objName):
     if analysis.type in ['hg', 'eg']:
         return(analysis.D47_ARF_acid)
     else:
-        return(analysis.D47_ARF_acid - CarraraCorrection)
+        return(analysis.D47_ARF_acid - CarbonateCorrection)
 
 """def Carrara_carbonate_correction_CRF(analysis, objName):
     ''' Function to apply a linear correction to carbonates based on CIT Carrara'''
@@ -1689,14 +1693,14 @@ def Daeron_data_creator(analyses, useCarbStandards = False):
             daeronData.append({'label': i.name, 'd45': i.d45, 'd46':i.d46,'d47': i.d47, 'd48': i.d48, 'd49': i.d49,
             'sd47': i.d47_stdev/np.sqrt(len(i.acqs)-i.skipFirstAcq), 'D17O': 0.0, 'd13Cwg_pdb': i.acqs[0].d13Cref, 'd18Owg_pdbco2': (i.acqs[0].d18Oref - 41.48693)/1.04148693,
             'D47raw': i.D47_raw, 'D47_raw_sterr': i.D47_sterr} )
-            if i.type == 'hg':
+            '''if i.type == 'hg':
                 daeronData[-1]['TCO2eq'] = 1000.0
                 daeronData[-1]['D47nominal'] = xlcor47_modified.CO2eqD47(1000.0)
             elif i.type == 'eg':
                 daeronData[-1]['TCO2eq'] = 25.0
-                daeronData[-1]['D47nominal'] = xlcor47_modified.CO2eqD47(25.0)
-            elif i.type == 'std':
-                if 'carrara' in i.name.lower():
+                daeronData[-1]['D47nominal'] = xlcor47_modified.CO2eqD47(25.0)'''
+            if i.type == 'std':
+                '''if 'carrara' in i.name.lower():
                     daeronData[-1]['D47nominal'] = CIT_Carrara_ARF - acid_correction_dict[i.rxnTemp]
                     daeronData[-1]['TCO2eq'] = np.nan
                 elif 'carara' in i.name.lower():
@@ -1725,7 +1729,19 @@ def Daeron_data_creator(analyses, useCarbStandards = False):
                     daeronData[-1]['TCO2eq'] = np.nan
                 elif 'tv04' in i.name.lower():
                     daeronData[-1]['D47nominal'] = TV04_ARF - acid_correction_dict[i.rxnTemp]
+                    daeronData[-1]['TCO2eq'] = np.nan'''
+                if 'eth-1' in i.name.lower():
+                    daeronData[-1]['D47nominal'] = ETH_1_ARF - acid_correction_dict[i.rxnTemp]
                     daeronData[-1]['TCO2eq'] = np.nan
+                elif 'eth-2' in i.name.lower():
+                    daeronData[-1]['D47nominal'] = ETH_2_ARF - acid_correction_dict[i.rxnTemp]
+                    daeronData[-1]['TCO2eq'] = np.nan
+                elif 'eth-3' in i.name.lower():
+                    daeronData[-1]['D47nominal'] = ETH_3_ARF - acid_correction_dict[i.rxnTemp]
+                    daeronData[-1]['TCO2eq'] = np.nan
+                '''elif 'eth-4' in i.name.lower():
+                    daeronData[-1]['D47nominal'] = ETH_4_ARF - acid_correction_dict[i.rxnTemp]
+                    daeronData[-1]['TCO2eq'] = np.nan'''
 
     else:
         for i in analyses:
@@ -1743,7 +1759,7 @@ def Daeron_data_creator(analyses, useCarbStandards = False):
 def Daeron_data_processer(analyses, showFigures = False):
     '''Performs Daeron-style correction to put clumped isotope data into the ARF'''
     useCarbStandards = False
-    askCarbStandards = input('Use carbonate standards for ARF correction? (y/n) ').lower()
+    askCarbStandards = input('Use ETH 1 to 3 carbonate standards for ARF correction? (y/n) ').lower()
     if askCarbStandards == 'y':
         useCarbStandards = True
 
@@ -1765,20 +1781,39 @@ def Daeron_data_processer(analyses, showFigures = False):
     stds_Carrara = [i for i in analyses if (i.type == 'std' and 'carrara' in i.name.lower() and not i.D48_excess)]
     # and TV04 offset
     stds_TV04 = [i for i in analyses if (i.type == 'std' and 'tv04' in i.name.lower() and not i.D48_excess)]
+    stds_ETH_1 = [i for i in analyses if (i.type == 'std' and 'eth-1' in i.name.lower() and not i.D48_excess)]
+    stds_ETH_2 = [i for i in analyses if (i.type == 'std' and 'eth-2' in i.name.lower() and not i.D48_excess)]
+    stds_ETH_3 = [i for i in analyses if (i.type == 'std' and 'eth-3' in i.name.lower() and not i.D48_excess)]
+    stds_ETH_4 = [i for i in analyses if (i.type == 'std' and 'eth-4' in i.name.lower() and not i.D48_excess)]
 
-    global CarraraCorrection
+    global CarbonateCorrection
     CarraraCorrection = np.mean([i.D47_ARF_acid for i in stds_Carrara]) - CIT_Carrara_ARF
     TV04_Correction = np.mean([i.D47_ARF_acid for i in stds_TV04]) - TV04_ARF
+    ETH_1_Correction = np.mean([i.D47_ARF_acid for i in stds_ETH_1]) - ETH_1_ARF
+    ETH_2_Correction = np.mean([i.D47_ARF_acid for i in stds_ETH_2]) - ETH_2_ARF
+    ETH_3_Correction = np.mean([i.D47_ARF_acid for i in stds_ETH_3]) - ETH_3_ARF
+    ETH_4_Correction = np.mean([i.D47_ARF_acid for i in stds_ETH_4]) - ETH_4_ARF
+
     print(('Carrara Correction is: '+ str(CarraraCorrection)))
     print(('TV04 Correction is: '+ str(TV04_Correction)))
-    stdCorrChoice = input('Use (c)arrara, (t)V04, or (b)oth for carbonate std correction? ').lower()
-    if stdCorrChoice == 't':
-        CarraraCorrection = TV04_Correction
+    print(('ETH-1 Correction is: ' + str(ETH_1_Correction)))
+    print(('ETH-2 Correction is: ' + str(ETH_2_Correction)))
+    print(('ETH-3 Correction is: ' + str(ETH_3_Correction)))
+    print(('ETH-4 Correction is: ' + str(ETH_4_Correction)))
+
+    stdCorrChoice = input('Use (c)arrara, (t)V04, or (b)oth, or (e)th 1 to 3 for carbonate std correction? ').lower()
+    if stdCorrChoice == 'c':
+        CarbonateCorrection = CarraraCorrection
+    elif stdCorrChoice == 't':
+        CarbonateCorrection = TV04_Correction
     elif stdCorrChoice == 'b':
         # if both, use average of both corrections, weighted by number of samples
-        bothCorrection = (CarraraCorrection*len(stds_Carrara) + TV04_Correction*len(stds_TV04))/(len(stds_Carrara)+ len(stds_TV04))
-        print(('both correction (weighted average) is: '+ str(bothCorrection)))
-        CarraraCorrection = bothCorrection
+        CarbonateCorrection = (CarraraCorrection*len(stds_Carrara) + TV04_Correction*len(stds_TV04))/(len(stds_Carrara)+ len(stds_TV04))
+        print('both correction (weighted average) is: '+ str(CarbonateCorrection))
+    elif stdCorrChoice == 'e':
+        CarbonateCorrection  = (ETH_1_Correction*len(stds_ETH_1) + ETH_2_Correction*len(stds_ETH_2) + ETH_3_Correction*len(stds_ETH_3))/(len(stds_ETH_1)+ len(stds_ETH_2)+len(stds_ETH_3))
+        print ('ETH correction (weighted average) is: '+ str(CarbonateCorrection))
+
     return
 
 def ExportSequence(analyses, pbl = False):

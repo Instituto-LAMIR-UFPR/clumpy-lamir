@@ -144,7 +144,7 @@ def process_data(data, be_conservative=True):
     CM = np.linalg.inv(np.dot(A.T, A))  # covariance matrix of fit parameters
 
     if be_conservative:
-        # Scale up uncertainties in the fit parameters if the goodnes-of-fit is worse than average.
+        # Scale up uncertainties in the fit parameters if the goodness-of-fit is worse than average.
         # To some extent, this helps account for external errors in the gas line data.
         chi2 = sum((Y - np.dot(A, f)) ** 2)
         nf = len([d for d in data if 'D47nominal' in d]) - 3
