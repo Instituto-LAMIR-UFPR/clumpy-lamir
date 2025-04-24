@@ -1424,6 +1424,7 @@ def CI_CRF_data_corrector(analyses, showFigures = True):
         #plt.figure(0).hold(True)
         plt.errorbar(d47_hgs, D47_raw_hgs, xerr = d47_stdev_hgs, yerr = D47_sterr_hgs, fmt = 'bo')
         plt.plot(d47_hgs, D47_raw_hgs_model, '-')
+        plt.title('Heated Gases Line ', fontsize=12)
         plt.ylabel(r'$\Delta_{47} \/ (‰)$')
         plt.xlabel(r'$\delta^{47} \/ (‰)$')
         plt.show()
@@ -1439,6 +1440,7 @@ def CI_CRF_data_corrector(analyses, showFigures = True):
         plt.errorbar([TV03_CRF for i in range(len(stds_TV03))],[j.D47_CRF-TV03_CRF for j in stds_TV03], yerr = [k.D47_sterr for k in stds_TV03], fmt = 'o')
         plt.errorbar([GC_AZ_CRF for i in range(len(stds_GC_AZ))],[j.D47_CRF-GC_AZ_CRF for j in stds_GC_AZ], yerr = [k.D47_sterr for k in stds_GC_AZ], fmt = 'o')
 
+        plt.title('Carbonate Standards', fontsize = 12)
         plt.xlim(0.3, 0.7)
         plt.xlabel(r'$\mathrm{\Delta_{47, CRF} \/ (‰)}$')
         plt.ylabel(r'$\mathrm{\Delta_{47, measured}-\Delta_{47, expected} \/ (‰)}$')
@@ -1787,21 +1789,38 @@ def Daeron_data_processer(analyses, showFigures = False):
     stds_ETH_4 = [i for i in analyses if (i.type == 'std' and 'eth-4' in i.name.lower() and not i.D48_excess)]
 
     global CarbonateCorrection
-    CarraraCorrection = np.mean([i.D47_ARF_acid for i in stds_Carrara]) - CIT_Carrara_ARF
-    TV04_Correction = np.mean([i.D47_ARF_acid for i in stds_TV04]) - TV04_ARF
-    ETH_1_Correction = np.mean([i.D47_ARF_acid for i in stds_ETH_1]) - ETH_1_ARF
-    ETH_2_Correction = np.mean([i.D47_ARF_acid for i in stds_ETH_2]) - ETH_2_ARF
-    ETH_3_Correction = np.mean([i.D47_ARF_acid for i in stds_ETH_3]) - ETH_3_ARF
-    ETH_4_Correction = np.mean([i.D47_ARF_acid for i in stds_ETH_4]) - ETH_4_ARF
+    CarraraCorrection = np.nan
+    TV04_Correction = np.nan
+    ETH_1_Correction = np.nan
+    ETH_2_Correction = np.nan
+    ETH_3_Correction = np.nan
+    ETH_4_Correction = np.nan
 
+    if len(stds_Carrara) > 0:
+        CarraraCorrection = np.mean([i.D47_ARF_acid for i in stds_Carrara]) - CIT_Carrara_ARF
     print(('Carrara Correction is: '+ str(CarraraCorrection)))
-    print(('TV04 Correction is: '+ str(TV04_Correction)))
+
+    if len(stds_TV04) > 0:
+        TV04_Correction = np.mean([i.D47_ARF_acid for i in stds_TV04]) - TV04_ARF
+    print(('TV04 Correction is: ' + str(TV04_Correction)))
+
+    if len(stds_ETH_1) > 0:
+        ETH_1_Correction = np.mean([i.D47_ARF_acid for i in stds_ETH_1]) - ETH_1_ARF
     print(('ETH-1 Correction is: ' + str(ETH_1_Correction)))
+
+    if len(stds_ETH_2) > 0:
+        ETH_2_Correction = np.mean([i.D47_ARF_acid for i in stds_ETH_2]) - ETH_2_ARF
     print(('ETH-2 Correction is: ' + str(ETH_2_Correction)))
+
+    if len(stds_ETH_3) > 0:
+        ETH_3_Correction = np.mean([i.D47_ARF_acid for i in stds_ETH_3]) - ETH_3_ARF
     print(('ETH-3 Correction is: ' + str(ETH_3_Correction)))
+
+    if len(stds_ETH_4) > 0:
+        ETH_4_Correction = np.mean([i.D47_ARF_acid for i in stds_ETH_4]) - ETH_4_ARF
     print(('ETH-4 Correction is: ' + str(ETH_4_Correction)))
 
-    stdCorrChoice = input('Use (c)arrara, (t)V04, or (b)oth, or (e)th 1 to 3 for carbonate std correction? ').lower()
+    stdCorrChoice = input('Use CIT (c)arrara, (t)V04, or (b)oth, or (e)th 1 to 3 for carbonate std correction? ').lower()
     if stdCorrChoice == 'c':
         CarbonateCorrection = CarraraCorrection
     elif stdCorrChoice == 't':
@@ -1809,7 +1828,7 @@ def Daeron_data_processer(analyses, showFigures = False):
     elif stdCorrChoice == 'b':
         # if both, use average of both corrections, weighted by number of samples
         CarbonateCorrection = (CarraraCorrection*len(stds_Carrara) + TV04_Correction*len(stds_TV04))/(len(stds_Carrara)+ len(stds_TV04))
-        print('both correction (weighted average) is: '+ str(CarbonateCorrection))
+        print('Both CIT Carrara and TV03 correction (weighted average) is: '+ str(CarbonateCorrection))
     elif stdCorrChoice == 'e':
         CarbonateCorrection  = (ETH_1_Correction*len(stds_ETH_1) + ETH_2_Correction*len(stds_ETH_2) + ETH_3_Correction*len(stds_ETH_3))/(len(stds_ETH_1)+ len(stds_ETH_2)+len(stds_ETH_3))
         print ('ETH correction (weighted average) is: '+ str(CarbonateCorrection))

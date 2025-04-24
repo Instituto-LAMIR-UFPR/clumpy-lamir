@@ -16,7 +16,7 @@ import numpy as np
 #from matplotlib import rcParams
 # rcParams['text.usetex'] = True
 # rcParams['font.sans-serif'] = 'DejaVu Sans Mono'
-import matplotlib.pyplot as mpl
+import matplotlib.pyplot as plt
 
 
 # import matplotlib.font_manager
@@ -140,7 +140,7 @@ def process_data(data, be_conservative=True):
     Y = [d['D47raw'] / d['D47_raw_sterr'] for d in data if 'D47nominal' in d]
     A, Y = np.array(A), np.array(Y)
 
-    f = np.linalg.lstsq(A, Y.T)[0]  # best-fit parameters
+    f = np.linalg.lstsq(A, Y.T, rcond=-1)[0]  # best-fit parameters
     CM = np.linalg.inv(np.dot(A.T, A))  # covariance matrix of fit parameters
 
     if be_conservative:
@@ -205,25 +205,25 @@ def plot_data(data, f, CM, filename):
 	and model uncertainties.
 	'''
     (a, b, c) = f
-    fig = mpl.figure()
+    fig = plt.figure()
     fig.set_figwidth(6)
     fig.set_figheight(6)
 
     for d in data:
         msmarkers_kwargs = {'ms': 4, 'color': 'w', 'mew': 1}
-        errorbar_kwargs = {'fmt': None, 'capsize': 2, 'capthick': 1, 'elinewidth': 1}
+        errorbar_kwargs = {'capsize': 2, 'capthick': 1, 'elinewidth': 1}
         if 'D47nominal' in d:
             color = 'r'
             marker = 's'
-            mpl.errorbar(d['d47'], d['D47raw'], 2 * d['D47_raw_sterr'], None, ecolor=color, **errorbar_kwargs)
-            mpl.plot(d['d47'], d['D47raw'], marker, mec=color, **msmarkers_kwargs)
+            plt.errorbar(d['d47'], d['D47raw'], yerr = 2 * d['D47_raw_sterr'], xerr = None, ecolor=color, **errorbar_kwargs)
+            plt.plot(d['d47'], d['D47raw'], marker, mec=color, **msmarkers_kwargs)
         else:
             color = 'b'
             marker = 'o'
-            mpl.errorbar(d['d47'], d['D47raw'], 2 * d['D47_raw_sterr'], None, ecolor=color, **errorbar_kwargs)
-            mpl.plot(d['d47'], d['D47raw'], marker, mec=color, **msmarkers_kwargs)
+            plt.errorbar(d['d47'], d['D47raw'], yerr = 2 * d['D47_raw_sterr'], xerr = None, ecolor=color, **errorbar_kwargs)
+            plt.plot(d['d47'], d['D47raw'], marker, mec=color, **msmarkers_kwargs)
 
-    xleft, xright, ybottom, ytop = mpl.axis()
+    xleft, xright, ybottom, ytop = plt.axis()
     xi = np.linspace(xleft, xright)
     # TCO2eq = list( set( [ d['TCO2eq'] for d in data if 'TCO2eq' in d ] ) )
     D47_nominal_eq = list(set([d['D47nominal'] for d in data if 'D47nominal' in d]))
@@ -238,10 +238,10 @@ def plot_data(data, f, CM, filename):
         C = CM
         syi = np.array(
             [(np.dot(np.array([dyda, xii, dydc]), np.dot(C, np.array([dyda, xii, dydc]).T))) ** .5 for xii in xi])
-        mpl.fill_between(xi, yi - 2 * syi, yi + 2 * syi, color='r', alpha=0.2)
+        plt.fill_between(xi, yi - 2 * syi, yi + 2 * syi, color='r', alpha=0.2)
 
-    mpl.axis([xleft, xright, None, None])
-    xleft, xright, ybottom, ytop = mpl.axis()
+    plt.axis([xleft, xright, None, None])
+    xleft, xright, ybottom, ytop = plt.axis()
 
     yi = np.arange(xleft, xright + 0.5, .5)
     xi = np.arange(ybottom, ytop + 0.05, .05)
@@ -262,17 +262,16 @@ def plot_data(data, f, CM, filename):
             C = CM
             SI[ky, kx] = (np.dot(v, np.dot(C, v.T))) ** .5
 
-    contour_kwargs = {'ls': '-', 'c': 'k', 'alpha': .25, 'zorder': -10}
+    contour_kwargs = {'alpha': .25, 'zorder': -10}
     # contour_label_kwargs = { 'horizontalalignment':'left', 'verticalalignment':'center', 'color':'cyan', 'alpha':1 }
 
     minS = SI.min()
-    cs = mpl.contour(YI, XI, SI, [np.ceil(minS * 1000) / 1000 + k * .002 for k in range(10)],
-                     colors=contour_kwargs['c'], **contour_kwargs)
-    mpl.clabel(cs)
+    cs = plt.contour(YI, XI, SI, [np.ceil(minS * 1000) / 1000 + k * .002 for k in range(10)], **contour_kwargs)
+    plt.clabel(cs)
 
-    mpl.xlabel(r'\u03B447 (\u2030)')
-    mpl.ylabel(r'Raw \u039447 (\u2030)')
-    mpl.show()
+    plt.xlabel(r'δ47 (‰)')
+    plt.ylabel(r'Raw Δ47 (‰)')
+    plt.show()
     return
 # plot_path = '%d.jpg' % filename
 # if __name__ == '__main__' :
