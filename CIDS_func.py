@@ -11,16 +11,32 @@ import time
 import xlcor47_modified
 #from scipy.optimize import root
 
+#Fractionation Factor for VPDB_VSMOW conversion
+VPDB_VSMOW = 1.03092 #Coplen et al. (2002) / IUPAC - Brand et al. (2014) / Kim et al. (2015) / IUPAC (CIAAW)
+VPDB_VSMOW_COPLEN83 = 1.04148693 #Coplen et al., 1983 (once NBS-19 is corrected to +2.2 permille)
 
+#Ratio values for international standards
+R13_VPDB = 0.01118 #Chang & Li, 1990
+R18_VSMOW = 0.0020052  #IAEA-TECDOC-825 (1993) / Baertschi (1976) / Li et al. (1988)
+LAMBDA_17 = 0.528 #Barkan & Luz, 2005)
+R17_VSMOW = 0.00038475 #Assonov & Brenninkmeijer, 2003
 
+#Derived ratio values
+R18_VPDB = R18_VSMOW * VPDB_VSMOW
+R17_VPDB = R17_VSMOW * VPDB_VSMOW ** LAMBDA_17
 
+#Acid Correction for Δ47
+ACID_CORRECTION_DICT = {'90': 0.088, '70': 0.066, '50': 0.040, '25': 0.0} #Petersen at al. 2019 (Valid for Calcite/DolomiteAragonite)
+
+#Δ47 values in Caltech Reference Frame
 CIT_Carrara_CRF = 0.352
 TV03_CRF = 0.650
 GC_AZ_CRF = 0.654
 
-CIT_Carrara_ARF = 0.3115 + 0.092
+#Δ47 values in Absolute Reference Frame
+CIT_Carrara_ARF = 0.3115 + 0.092 #valor adicionado de 0,092 que é a correção de ácido de 90ºC antiga(verificar)
 NBS_19_ARF = CIT_Carrara_ARF
-TV03_ARF = 0.635 + 0.092
+TV03_ARF = 0.635 + 0.092 #valor adicionado de 0,092 que é a correção de ácido de 90ºC antiga (verificar)
 GC_AZ_ARF = 0.710
 TV04_ARF = 0.655
 ETH_1_ARF = 0.2052
@@ -38,8 +54,8 @@ TempConversion_B = 0.258
 global mass47PblSlope
 mass47PblSlope = 0
 
-global CarraraCorrection
-CarraraCorrection = 0.0
+global CarbonateCorrection
+CarbonateCorrection = 0.0
 
 
 class CI_VALUE(object):
@@ -279,31 +295,20 @@ def murray_acid_equation(T_c):
     return(ln_alpha)
 def bulk_comp_brand_2010(acq, objName):
     ''' Brand 2010 style calculation of bulk composition'''
-    lambda_17 = 0.528
     K = 0.01022451
-    vsmow_R18 = 0.0020052
-    vsmow_R17 = 0.00038475
-    vpdb_R13 = 0.011180
-
-    # Derived quantities
-    vpdb_R18 = vsmow_R18*1.03092*1.01025
-    # vpdb_R17 = vsmow_R17*(1.03092*1.01025)**lambda_17
-
-    # vpdb_R18 = 0.002088389
-    vpdb_R17 = 0.00039310
 
     # Dummy holder eventually need to add in D17 of sample
     D17O_anomaly = 0
-    K_general = np.exp(D17O_anomaly)*vpdb_R17*vpdb_R18**-lambda_17
+    K_general = np.exp(D17O_anomaly)*R17_VPDB*R18_VPDB**-LAMBDA_17
 
 
     # convert wg d18O to vpdb, using the recommended value of Coplen et al., 1983 (once NBS-19 is corrected to +2.2 permille)
-    d18Oref_vpdb = (acq.d18Oref-41.48693)/1.04148693
+    d18Oref_vpdb = (acq.d18Oref - (VPDB_VSMOW_COPLEN83 - 1) * 1000) / VPDB_VSMOW_COPLEN83
 
     # Calculate working gas ratios
-    R13_ref=(acq.d13Cref/1000+1)*vpdb_R13
-    R18_ref=(d18Oref_vpdb/1000+1)*vpdb_R18
-    R17_ref=np.power((R18_ref/vpdb_R18),lambda_17)*vpdb_R17
+    R13_ref=(acq.d13Cref/1000+1)*R13_VPDB
+    R18_ref=(d18Oref_vpdb/1000+1)*R18_VPDB
+    R17_ref= np.power((R18_ref/R18_VPDB), LAMBDA_17) * R17_VPDB
 
     # calculating measured voltage ratios, with sample/ref bracketing
     R_measured_analysis=(acq.voltSam[:,1:6]/(np.tile(acq.voltSam[:,0],(5,1)).T))
@@ -342,27 +347,27 @@ def bulk_comp_brand_2010(acq, objName):
     # TAYLOR POLYNOMIAL VERSION OF THE SAME
     # From Daeron et al., 2016, Appendix B
     # Calculate K specifically for the ref gas composition
-    K = np.exp(D17O_anomaly) * vpdb_R17 * vpdb_R18 ** -lambda_17
+    K = np.exp(D17O_anomaly) * R17_VPDB * R18_VPDB ** -LAMBDA_17
     #taylor polynomials of the d46-d18O equations
-    A_taylor = -3 * K**2 * (vpdb_R18**(2*lambda_17))
-    B_taylor = 2 * K * R_measured_mean[0]*(vpdb_R18**lambda_17)
-    C_taylor = 2 * vpdb_R18
+    A_taylor = -3 * K**2 * (R18_VPDB ** (2 * LAMBDA_17))
+    B_taylor = 2 * K * R_measured_mean[0]*(R18_VPDB ** LAMBDA_17)
+    C_taylor = 2 * R18_VPDB
     D_taylor = -R_measured_mean[1]
 
-    a_taylor = A_taylor*lambda_17*(2*lambda_17-1) + B_taylor*lambda_17*(lambda_17-1)/2
-    b_taylor = 2*A_taylor*lambda_17+B_taylor*lambda_17+C_taylor
+    a_taylor = A_taylor * LAMBDA_17 * (2 * LAMBDA_17 - 1) + B_taylor * LAMBDA_17 * (LAMBDA_17 - 1) / 2
+    b_taylor = 2 * A_taylor * LAMBDA_17 + B_taylor * LAMBDA_17 + C_taylor
     c_taylor = A_taylor + B_taylor + C_taylor + D_taylor
     # solve using quadratic eqn
     # in vpdb_co2 space
     d18O_taylor = 1000*(-b_taylor + (b_taylor**2-4*a_taylor*c_taylor)**0.5)/(2*a_taylor)
-    R18_taylor = (d18O_taylor/1000+1)*vpdb_R18
-    R17_taylor = K * R18_taylor**lambda_17
+    R18_taylor = (d18O_taylor/1000+1)*R18_VPDB
+    R17_taylor = K * R18_taylor ** LAMBDA_17
     R13_taylor = R_measured_mean[0] - 2*R17_taylor
-    d13C_taylor = (R13_taylor/vpdb_R13-1)*1000
+    d13C_taylor = (R13_taylor/R13_VPDB-1)*1000
 
     d13C_vpdb_brand = d13C_taylor
     d18O_vpdb_brand = d18O_taylor
-    d18O_vsmow_brand = d18O_vpdb_brand*1.04148693 + 41.48693
+    d18O_vsmow_brand = d18O_vpdb_brand * VPDB_VSMOW_COPLEN83 + (VPDB_VSMOW_COPLEN83-1)*1000
 
 
     #assemble dict
@@ -387,7 +392,7 @@ def carb_gas_oxygen_fractionation_acq(instance):
     # Done properly, this should be a function of the d18O of the gas, the reaction T,
     # and the cabonate phase of the analysis, but we're sticking to 90C calcite for now'''
 
-    vsmow_18O=0.0020052  #IAEA-TECDOC-825 / Baertschi (1976) / Li et al. (1988)
+
     vpdb_18O = 0 #don't know this right now
     rxnFrac = {'calcite_90': 1.00821, 'calcite_50': 1.0093, 'calcite_25': 1.01025,
     'dolomite_25': 1.01178, 'dolomite_50': 1.01038, 'dolomite_90': 1.009218, 'dolomite_100':1.00913, 'gas_25': 1.0, 'gas_90': 1.0}
@@ -398,9 +403,9 @@ def carb_gas_oxygen_fractionation_acq(instance):
 
     rxnKey = instance.mineral + '_' + str(instance.rxnTemp)
     if instance.useBrand2010:
-        d18O_vpdb = (instance.d18O_gas-30.92)/1.03092   #IUPAC / Brand et al. (2014) / Kim et al. (2015)
+        d18O_vpdb = (instance.d18O_gas-(VPDB_VSMOW-1)*1000)/VPDB_VSMOW #IUPAC / Brand et al. (2014) / Kim et al. (2015)
     else:
-        d18O_vpdb = (instance.d18O_gas-30.86)/1.03086   #Friedman and O'Neil (1977) / CIDS Table
+        d18O_vpdb = (instance.d18O_gas-(VPDB_VSMOW-1)*1000)/VPDB_VSMOW   #Friedman and O'Neil (1977) / CIDS Table
 
     d18O_min = ((d18O_vpdb+1000)/rxnFrac[rxnKey])-1000
     return d18O_min
@@ -1015,39 +1020,38 @@ def Isodat_File_Parser_CAF(fileName):
 
 def Get_carbonate_stds(analyses):
     '''Finds which analyses are carbonate standards, and assigns them accepted D47nominal values'''
-    acid_correction_dict = {90: 0.092, 50: 0.040, 25: 0.0}
     for item in analyses:
         if item.type == 'std':
                 if 'carrara' in item.name.lower():
                     item.TCO2 = ''
-                    item.D47nominal = CIT_Carrara_ARF -acid_correction_dict[item.rxnTemp]
+                    item.D47nominal = CIT_Carrara_ARF -ACID_CORRECTION_DICT[str(item.rxnTemp)]
                 elif 'carara' in item.name.lower():
                     item.TCO2 = ''
-                    item.D47nominal = CIT_Carrara_ARF -acid_correction_dict[item.rxnTemp]
+                    item.D47nominal = CIT_Carrara_ARF -ACID_CORRECTION_DICT[str(item.rxnTemp)]
                 elif 'cararra' in item.name.lower():
                     item.TCO2 = ''
-                    item.D47nominal = CIT_Carrara_ARF -acid_correction_dict[item.rxnTemp]
+                    item.D47nominal = CIT_Carrara_ARF -ACID_CORRECTION_DICT[str(item.rxnTemp)]
                 elif 'hagit' in item.name.lower():
                     item.TCO2 = ''
-                    item.D47nominal = CIT_Carrara_ARF -acid_correction_dict[item.rxnTemp]
+                    item.D47nominal = CIT_Carrara_ARF -ACID_CORRECTION_DICT[str(item.rxnTemp)]
                 elif 'tv03' in item.name.lower():
                     item.TCO2 = ''
-                    item.D47nominal = TV03_ARF -acid_correction_dict[item.rxnTemp]
+                    item.D47nominal = TV03_ARF -ACID_CORRECTION_DICT[str(item.rxnTemp)]
                 elif 'nbs-19' in item.name.lower():
                     item.TCO2 = ''
-                    item.D47nominal = NBS_19_ARF -acid_correction_dict[item.rxnTemp]
+                    item.D47nominal = NBS_19_ARF -ACID_CORRECTION_DICT[str(item.rxnTemp)]
                 elif 'gc-az' in item.name.lower():
                     item.TCO2 = ''
-                    item.D47nominal = GC_AZ_ARF -acid_correction_dict[item.rxnTemp]
+                    item.D47nominal = GC_AZ_ARF -ACID_CORRECTION_DICT[str(item.rxnTemp)]
                 elif 'gc-102' in item.name.lower():
                     item.TCO2 = ''
-                    item.D47nominal = GC_AZ_ARF -acid_correction_dict[item.rxnTemp]
+                    item.D47nominal = GC_AZ_ARF -ACID_CORRECTION_DICT[str(item.rxnTemp)]
                 elif 'gc_az' in item.name.lower():
                     item.TCO2 = ''
-                    item.D47nominal = GC_AZ_ARF -acid_correction_dict[item.rxnTemp]
+                    item.D47nominal = GC_AZ_ARF -ACID_CORRECTION_DICT[str(item.rxnTemp)]
                 elif 'tv04' in item.name.lower():
                     item.TCO2 = ''
-                    item.D47nominal = TV04_ARF -acid_correction_dict[item.rxnTemp]
+                    item.D47nominal = TV04_ARF -ACID_CORRECTION_DICT[str(item.rxnTemp)]
                 else:
                     item.TCO2 = ''
                     item.D47nominal = ''
@@ -1113,11 +1117,11 @@ def Daeron_exporter_crunch(analyses, fileName):
     for item in analyses:
         if item.type == 'sample':
             wrt.writerow([item.type, item.name, item.d45, item.d46, item.d47, item.d48, item.d49,
-            item.d47_stdev/np.sqrt(len(item.acqs)-item.skipFirstAcq), 0.0, item.acqs[0].d13Cref, (item.acqs[0].d18Oref - 41.48693)/1.04148693,
+            item.d47_stdev/np.sqrt(len(item.acqs)-item.skipFirstAcq), 0.0, item.acqs[0].d13Cref, (item.acqs[0].d18Oref - (VPDB_VSMOW_COPLEN83-1)*1000)/VPDB_VSMOW_COPLEN83,
             item.D47_raw])
         else :
             wrt.writerow([item.type, item.name, item.d45, item.d46, item.d47, item.d48, item.d49,
-            item.d47_stdev/np.sqrt(len(item.acqs)-item.skipFirstAcq), 0.0, item.acqs[0].d13Cref, (item.acqs[0].d18Oref - 41.48693)/1.04148693,
+            item.d47_stdev/np.sqrt(len(item.acqs)-item.skipFirstAcq), 0.0, item.acqs[0].d13Cref, (item.acqs[0].d18Oref - (VPDB_VSMOW_COPLEN83-1)*1000)/VPDB_VSMOW_COPLEN83,
             item.D47_raw, item.TCO2, item.D47nominal])
     export.close()
     return
@@ -1179,47 +1183,32 @@ def bulk_comp_solver(calcRatios, *extraArgs):
 def D47_calculation_valued(acq, objName):
     '''Performs all the clumped isotope calculations for a single acq'''
 
-    vpdb_13C=0.0112372 # values copied from CIDS spreadsheet
-    vsmow_18O=0.0020052
-    vsmow_17O=0.0003799
-    lambda_17=0.5164
-
     # if using Brand et al. (2010) correction
     if acq.useBrand2010:
-        lambda_17 = 0.528
         K = 0.01022451
-        vsmow_18O = 0.0020052
-        vsmow_17O = 0.00038475
-        vpdb_13C = 0.011180
-
-        # Derived quantities
-        vpdb_18O = vsmow_18O*1.03092*1.01025
-        # vpdb_17O = vsmow_17O*(1.03092*1.01025)**lambda_17
-        # vpdb_17O = K*vpdb_R18**a
-        vpdb_17O = 0.0003931
 
         # convert wg d18O to vpdb, using the recommended value of Coplen et al., 1983 (once NBS-19 is corrected to +2.2 permille)
-        d18Oref_vpdb = (acq.d18Oref-41.48693)/1.04148693
+        d18Oref_vpdb = (acq.d18Oref-(VPDB_VSMOW_COPLEN83-1)*1000)/VPDB_VSMOW_COPLEN83
 
         # Calculate working gas ratios
-        R13_ref=(acq.d13Cref/1000+1)*vpdb_13C
-        R18_ref=(d18Oref_vpdb/1000+1)*vpdb_18O
-        R17_ref=np.power((R18_ref/vpdb_18O),lambda_17)*vpdb_17O
+        R18_ref=(d18Oref_vpdb/1000+1)*R18_VPDB
+        R17_ref=np.power((R18_ref/R18_VPDB),LAMBDA_17)*R17_VPDB
 
-        d18O_gas_vpdb = (acq.d18O_gas-41.48693)/1.04148693
-        #
-        R13_sa=(acq.d13C/1000+1)*vpdb_13C
-        R18_sa=(d18O_gas_vpdb/1000+1)*vpdb_18O
-        R17_sa=np.power((R18_sa/vpdb_18O),lambda_17)*vpdb_17O
+        d18O_gas_vpdb = (acq.d18O_gas-(VPDB_VSMOW_COPLEN83-1)*1000)/VPDB_VSMOW_COPLEN83
+        # Calculate sample gas ratios
+        R18_sa=(d18O_gas_vpdb/1000+1)*R18_VPDB
+        R17_sa=np.power((R18_sa/R18_VPDB),LAMBDA_17)*R17_VPDB
 
     else:
-        R13_sa=(acq.d13C/1000+1)*vpdb_13C
-        R18_sa=(acq.d18O_gas/1000+1)*vsmow_18O
-        R17_sa=np.power((R18_sa/vsmow_18O),lambda_17)*vsmow_17O
+        # Calculate working gas ratios
+        R13_ref=(acq.d13Cref/1000+1)*R13_VPDB
+        R18_ref= (acq.d18Oref/1000+1) * R18_VSMOW
+        R17_ref= np.power((R18_ref / R18_VSMOW), LAMBDA_17) * R17_VSMOW
 
-        R13_ref=(acq.d13Cref/1000+1)*vpdb_13C
-        R18_ref=(acq.d18Oref/1000+1)*vsmow_18O
-        R17_ref=np.power((R18_ref/vsmow_18O),lambda_17)*vsmow_17O
+        # Calculate sample gas ratios
+        R13_sa=(acq.d13C/1000+1)*R13_VPDB
+        R18_sa= (acq.d18O_gas/1000+1) * R18_VSMOW
+        R17_sa= np.power((R18_sa / R18_VSMOW), LAMBDA_17) * R17_VSMOW
 
     # calculating stochastic ratios
     # to keep things organized and avoid repetetive code lines,
@@ -1518,8 +1507,7 @@ def Carrara_carbonate_correction_ARF(analysis, objName):
 def CI_CRF_corrector(analysis, objName):
     '''Function to apply the heated gas correction in the Caltech Ref Frame'''
 
-    acid_correction_dict = {'90': 0.081, '50': 0.040, '25': 0.0}
-    acid_digestion_correction = acid_correction_dict[str(analysis.rxnTemp)]
+    acid_digestion_correction = ACID_CORRECTION_DICT[str(analysis.rxnTemp)]
     try:
         D47_hg_corrected = analysis.D47_raw - (analysis.d47*hg_slope + hg_intercept)
         D47_stretching = D47_hg_corrected *(-0.8453)/hg_intercept
@@ -1531,11 +1519,8 @@ def CI_CRF_corrector(analysis, objName):
 
 def CI_ARF_acid_corrector(analysis, objName):
     '''Function to apply the acid correction to an arf value'''
-    #acid_correction_dict = {'90': 0.092, '50': 0.040, '25': 0.0}
-    acid_correction_dict = {'90': 0.088, '70': 0.066, '50': 0.040, '25': 0.0}
-    # atualizado com info de PETERSEN ET AL. 2019
 
-    acid_digestion_correction = acid_correction_dict[str(analysis.rxnTemp)]
+    acid_digestion_correction = ACID_CORRECTION_DICT[str(analysis.rxnTemp)]
     try:
         D47_ARF_acid = analysis.D47_ARF + acid_digestion_correction
     except NameError:
@@ -1594,7 +1579,7 @@ def CI_D47_to_temp_ARF(D47_ARF_acid):
 
     # NEW Boniface 2016 calibration
     # NOTE: Using D47_ARF that is not acid corrected, because this is how Magali does it
-    D47_ARF_90 = D47_ARF_acid- 0.092
+    D47_ARF_90 = D47_ARF_acid - ACID_CORRECTION_DICT['90']
     TKe6 = (D47_ARF_90-TempConversion_B)/TempConversion_A
 
     # New ARF function, based on Stolper 2015, Bonifacie 2011, Guo 2009, and Ghosh 2006 data
@@ -1625,7 +1610,7 @@ def CI_temp_to_D47_ARF(T_C):
     TKe6 = 1e6/(T_C+273.15)**2
     # D47_ARF_acid = a*TKe6**2+b*TKe6+c
     D47_ARF_90= TempConversion_A*TKe6 + TempConversion_B
-    D47_ARF_acid = D47_ARF_90 + 0.092
+    D47_ARF_acid = D47_ARF_90 + ACID_CORRECTION_DICT['90']
 
     return(D47_ARF_acid)
 
@@ -1648,23 +1633,21 @@ def CI_water_calibration(d18O_min, T_C):
     Note, only valid from 10-40 C'''
 
     #for now, just doing the boniface + Henkes ARF calibration
-    d18O_min_vsmow = d18O_min*1.03092 + 30.92
-    R18_vsmow = 0.0020052
-    R18_min = (d18O_min_vsmow/1000+1)*R18_vsmow
+    d18O_min_vsmow = d18O_min*VPDB_VSMOW + (VPDB_VSMOW-1)*1000
+    R18_min = (d18O_min_vsmow/1000+1) * R18_VSMOW
     T_K = T_C + 273.15
     # The Kim and Oneil 1997 equation:
     alpha_calcite_H2O = np.exp(((18.03*(1e3/T_K)-32.42)/1000))
     R18_H2O = R18_min/alpha_calcite_H2O
-    d18O_H2O_vsmow = (R18_H2O/R18_vsmow-1)*1000
+    d18O_H2O_vsmow = (R18_H2O / R18_VSMOW - 1) * 1000
 
     return(d18O_H2O_vsmow)
 
 
 def CI_carb_water_calibration(d18O_min, T_C, mineral):
     ''' function to determine fluid composition, in dolomite or calcite'''
-    d18O_min_vsmow = d18O_min*1.03092 + 30.92
-    R18_vsmow = 0.0020052
-    R18_min = (d18O_min_vsmow/1000+1)*R18_vsmow
+    d18O_min_vsmow = d18O_min*VPDB_VSMOW + (VPDB_VSMOW-1)*1000
+    R18_min = (d18O_min_vsmow/1000+1) * R18_VSMOW
     T_K = T_C + 273.15
     if mineral == 'dolomite':
         # Horita 2014 calibration
@@ -1674,7 +1657,7 @@ def CI_carb_water_calibration(d18O_min, T_C, mineral):
         alpha_carb_H2O = np.exp((2.789*(1e6/T_K**2)-2.89)/1000)
 
     R18_H2O = R18_min/alpha_carb_H2O
-    d18O_H2O_vsmow = (R18_H2O/R18_vsmow-1)*1000
+    d18O_H2O_vsmow = (R18_H2O / R18_VSMOW - 1) * 1000
     return(d18O_H2O_vsmow)
 
 def CI_hg_values(instance, objName):
@@ -1688,12 +1671,11 @@ def CI_hg_values(instance, objName):
 def Daeron_data_creator(analyses, useCarbStandards = False):
     '''Creates a list of dictionaries in the format needed for M. Daeron's data
     processing script '''
-    acid_correction_dict = {90: 0.092, 50: 0.040, 25: 0.0}
     daeronData = []
     if useCarbStandards:
         for i in analyses:
             daeronData.append({'label': i.name, 'd45': i.d45, 'd46':i.d46,'d47': i.d47, 'd48': i.d48, 'd49': i.d49,
-            'sd47': i.d47_stdev/np.sqrt(len(i.acqs)-i.skipFirstAcq), 'D17O': 0.0, 'd13Cwg_pdb': i.acqs[0].d13Cref, 'd18Owg_pdbco2': (i.acqs[0].d18Oref - 41.48693)/1.04148693,
+            'sd47': i.d47_stdev/np.sqrt(len(i.acqs)-i.skipFirstAcq), 'D17O': 0.0, 'd13Cwg_pdb': i.acqs[0].d13Cref, 'd18Owg_pdbco2': (i.acqs[0].d18Oref - (VPDB_VSMOW_COPLEN83-1)*1000)/VPDB_VSMOW_COPLEN83,
             'D47raw': i.D47_raw, 'D47_raw_sterr': i.D47_sterr} )
             '''if i.type == 'hg':
                 daeronData[-1]['TCO2eq'] = 1000.0
@@ -1703,52 +1685,52 @@ def Daeron_data_creator(analyses, useCarbStandards = False):
                 daeronData[-1]['D47nominal'] = xlcor47_modified.CO2eqD47(25.0)'''
             if i.type == 'std':
                 '''if 'carrara' in i.name.lower():
-                    daeronData[-1]['D47nominal'] = CIT_Carrara_ARF - acid_correction_dict[i.rxnTemp]
+                    daeronData[-1]['D47nominal'] = CIT_Carrara_ARF - ACID_CORRECTION_DICT[i.rxnTemp]
                     daeronData[-1]['TCO2eq'] = np.nan
                 elif 'carara' in i.name.lower():
-                    daeronData[-1]['D47nominal'] = CIT_Carrara_ARF - acid_correction_dict[i.rxnTemp]
+                    daeronData[-1]['D47nominal'] = CIT_Carrara_ARF - ACID_CORRECTION_DICT[i.rxnTemp]
                     daeronData[-1]['TCO2eq'] = np.nan
                 elif 'cararra' in i.name.lower():
-                    daeronData[-1]['D47nominal'] = CIT_Carrara_ARF - acid_correction_dict[i.rxnTemp]
+                    daeronData[-1]['D47nominal'] = CIT_Carrara_ARF - ACID_CORRECTION_DICT[i.rxnTemp]
                     daeronData[-1]['TCO2eq'] = np.nan
                 elif 'hagit' in i.name.lower():
-                    daeronData[-1]['D47nominal'] = CIT_Carrara_ARF - acid_correction_dict[i.rxnTemp]
+                    daeronData[-1]['D47nominal'] = CIT_Carrara_ARF - ACID_CORRECTION_DICT[i.rxnTemp]
                     daeronData[-1]['TCO2eq'] = np.nan
                 elif 'tv03' in i.name.lower():
-                    daeronData[-1]['D47nominal'] = TV03_ARF - acid_correction_dict[i.rxnTemp]
+                    daeronData[-1]['D47nominal'] = TV03_ARF - ACID_CORRECTION_DICT[i.rxnTemp]
                     daeronData[-1]['TCO2eq'] = np.nan
                 elif 'nbs-19' in i.name.lower():
-                    daeronData[-1]['D47nominal'] = NBS_19_ARF - acid_correction_dict[i.rxnTemp]
+                    daeronData[-1]['D47nominal'] = NBS_19_ARF - ACID_CORRECTION_DICT[i.rxnTemp]
                     daeronData[-1]['TCO2eq'] = np.nan
                 elif 'gc-az' in i.name.lower():
-                    daeronData[-1]['D47nominal'] = GC_AZ_ARF - acid_correction_dict[i.rxnTemp]
+                    daeronData[-1]['D47nominal'] = GC_AZ_ARF - ACID_CORRECTION_DICT[i.rxnTemp]
                     daeronData[-1]['TCO2eq'] = np.nan
                 elif 'gc_az' in i.name.lower():
-                    daeronData[-1]['D47nominal'] = GC_AZ_ARF - acid_correction_dict[i.rxnTemp]
+                    daeronData[-1]['D47nominal'] = GC_AZ_ARF - ACID_CORRECTION_DICT[i.rxnTemp]
                     daeronData[-1]['TCO2eq'] = np.nan
                 elif 'gc-102' in i.name.lower():
-                    daeronData[-1]['D47nominal'] = GC_AZ_ARF - acid_correction_dict[i.rxnTemp]
+                    daeronData[-1]['D47nominal'] = GC_AZ_ARF - ACID_CORRECTION_DICT[i.rxnTemp]
                     daeronData[-1]['TCO2eq'] = np.nan
                 elif 'tv04' in i.name.lower():
-                    daeronData[-1]['D47nominal'] = TV04_ARF - acid_correction_dict[i.rxnTemp]
+                    daeronData[-1]['D47nominal'] = TV04_ARF - ACID_CORRECTION_DICT[i.rxnTemp]
                     daeronData[-1]['TCO2eq'] = np.nan'''
                 if 'eth-1' in i.name.lower():
-                    daeronData[-1]['D47nominal'] = ETH_1_ARF - acid_correction_dict[i.rxnTemp]
+                    daeronData[-1]['D47nominal'] = ETH_1_ARF - ACID_CORRECTION_DICT[i.rxnTemp]
                     daeronData[-1]['TCO2eq'] = np.nan
                 elif 'eth-2' in i.name.lower():
-                    daeronData[-1]['D47nominal'] = ETH_2_ARF - acid_correction_dict[i.rxnTemp]
+                    daeronData[-1]['D47nominal'] = ETH_2_ARF - ACID_CORRECTION_DICT[i.rxnTemp]
                     daeronData[-1]['TCO2eq'] = np.nan
                 elif 'eth-3' in i.name.lower():
-                    daeronData[-1]['D47nominal'] = ETH_3_ARF - acid_correction_dict[i.rxnTemp]
+                    daeronData[-1]['D47nominal'] = ETH_3_ARF - ACID_CORRECTION_DICT[i.rxnTemp]
                     daeronData[-1]['TCO2eq'] = np.nan
                 '''elif 'eth-4' in i.name.lower():
-                    daeronData[-1]['D47nominal'] = ETH_4_ARF - acid_correction_dict[i.rxnTemp]
+                    daeronData[-1]['D47nominal'] = ETH_4_ARF - ACID_CORRECTION_DICT[i.rxnTemp]
                     daeronData[-1]['TCO2eq'] = np.nan'''
 
     else:
         for i in analyses:
             daeronData.append({'label': i.name, 'd45': i.d45, 'd46':i.d46,'d47': i.d47, 'd48': i.d48, 'd49': i.d49,
-            'sd47': i.d47_stdev/np.sqrt(len(i.acqs)-i.skipFirstAcq), 'D17O': 0.0, 'd13Cwg_pdb': i.acqs[0].d13Cref, 'd18Owg_pdbco2': (i.acqs[0].d18Oref - 41.48693)/1.04148693,
+            'sd47': i.d47_stdev/np.sqrt(len(i.acqs)-i.skipFirstAcq), 'D17O': 0.0, 'd13Cwg_pdb': i.acqs[0].d13Cref, 'd18Owg_pdbco2': (i.acqs[0].d18Oref - (VPDB_VSMOW_COPLEN83-1)*1000)/VPDB_VSMOW_COPLEN83,
             'D47raw': i.D47_raw, 'D47_raw_sterr': i.D47_sterr} )
             if i.type == 'hg':
                 daeronData[-1]['TCO2eq'] = 1000.0
@@ -1788,7 +1770,6 @@ def Daeron_data_processer(analyses, showFigures = False):
     stds_ETH_3 = [i for i in analyses if (i.type == 'std' and 'eth-3' in i.name.lower() and not i.D48_excess)]
     stds_ETH_4 = [i for i in analyses if (i.type == 'std' and 'eth-4' in i.name.lower() and not i.D48_excess)]
 
-    global CarbonateCorrection
     CarraraCorrection = np.nan
     TV04_Correction = np.nan
     ETH_1_Correction = np.nan
@@ -1820,6 +1801,7 @@ def Daeron_data_processer(analyses, showFigures = False):
         ETH_4_Correction = np.mean([i.D47_ARF_acid for i in stds_ETH_4]) - ETH_4_ARF
     print(('ETH-4 Correction is: ' + str(ETH_4_Correction)))
 
+    global CarbonateCorrection
     stdCorrChoice = input('Use CIT (c)arrara, (t)V04, or (b)oth, or (e)th 1 to 3 for carbonate std correction? ').lower()
     if stdCorrChoice == 'c':
         CarbonateCorrection = CarraraCorrection
@@ -1944,17 +1926,15 @@ def D47_mixing(x_1, d13C_1, d18O_1, D47_1, x_2, d13C_2, d18O_2, D47_2):
     ''' Mixing between two endmembers, in concentrations, assuming d13C in vpdb and d18O in vsmow'''
 
     vpdb_13C=0.01118 # values copied from CIDS spreadsheet
-    vsmow_18O=0.0020052
     vsmow_17O=0.00038475
-    lambda_17=0.528
 
     R13_1=(d13C_1/1000+1)*vpdb_13C
-    R18_1=(d18O_1/1000+1)*vsmow_18O
-    R17_1=np.power((R18_1/vsmow_18O),lambda_17)*vsmow_17O
+    R18_1= (d18O_1/1000+1) * R18_VSMOW
+    R17_1= np.power((R18_1 / R18_VSMOW), LAMBDA_17) * vsmow_17O
 
     R13_2=(d13C_2/1000+1)*vpdb_13C
-    R18_2=(d18O_2/1000+1)*vsmow_18O
-    R17_2=np.power((R18_2/vsmow_18O),lambda_17)*vsmow_17O
+    R18_2= (d18O_2/1000+1) * R18_VSMOW
+    R17_2= np.power((R18_2 / R18_VSMOW), LAMBDA_17) * vsmow_17O
 
 
     # calculating stochastic ratios
@@ -2001,7 +1981,7 @@ def D47_mixing(x_1, d13C_1, d18O_1, D47_1, x_2, d13C_2, d18O_2, D47_2):
 
     D47_m = (c47_m/c44_m/R47_m_stoch-1)*1000
     d13C_m = (R13_m/vpdb_13C-1)*1000
-    d18O_m = (R18_m/vsmow_18O-1)*1000
+    d18O_m = (R18_m / R18_VSMOW - 1) * 1000
 
     return(d13C_m,d18O_m,D47_m)
 

@@ -279,7 +279,7 @@ while True:
             CIDS_func.Brand_2010_bulk_comp_setter(analyses)
         print('Processing data in caltech ref frame')
         CIDS_func.CI_CRF_data_corrector(analyses)
-        print('Processing data in absolute ref frame, with the Daeron method')
+        print('Processing data in Absolute Reference Frame (ARF), with the Daeron method')
         daeronPlotChoice = input('Show Daeron plots? (y/n) ').lower()
         if daeronPlotChoice == 'y':
             CIDS_func.Daeron_data_processer(analyses, showFigures = True)
