@@ -1,19 +1,19 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
-'''
+"""
 Web app to convert raw D47 values to "absolute" values
 Mathieu Daëron (mathieu@daeron.fr), August 2014
-'''
+"""
 
 import xlrd
 import csv
-#import os
-#from flask import Flask, request, url_for, render_template
+# import os
+# from flask import Flask, request, url_for, render_template
 import numpy as np
-#from pylab import linalg
-#from matplotlib import use
+# from pylab import linalg
+# from matplotlib import use
 # use('Agg')
-#from matplotlib import rcParams
+# from matplotlib import rcParams
 # rcParams['text.usetex'] = True
 # rcParams['font.sans-serif'] = 'DejaVu Sans Mono'
 import matplotlib.pyplot as plt
@@ -23,32 +23,27 @@ import matplotlib.pyplot as plt
 # print matplotlib.font_manager.findSystemFonts(fontpaths=None, fontext='ttf')
 
 def __CO2eqD47_function():
-    '''
-	Theoretical equilibrium values for D47 in CO2 gas according to
-	Wang et al. (2004) [http://dx.doi.org/10.1016/j.gca.2004.05.039],
-	reported in the supplementary data of Dennis et al. (2011)
-	[http://dx.doi.org/10.1016/j.gca.2011.09.025]
-	'''
+    """Theoretical equilibrium values for D47 in CO2 gas according to Wang et al. (2004) [
+    http://dx.doi.org/10.1016/j.gca.2004.05.039],	reported in the supplementary data of Dennis et al. (2011) [
+    http://dx.doi.org/10.1016/j.gca.2011.09.025]"""
 
-    eq_val = '''
-	-83 1.8954\n-73 1.7530\n-63 1.6261\n-53 1.5126\n-43 1.4104\n-33 1.3182\n-23 1.2345
-	-13 1.1584\n-3 1.0888\n7 1.0251\n17 0.9665\n27 0.9125\n37 0.8626\n47 0.8164\n57 0.7734
-	67 0.7334\n87 0.6612\n97 0.6286\n107 0.5980\n117 0.5693\n127 0.5423\n137 0.5169
-	147 0.4930\n157 0.4704\n167 0.4491\n177 0.4289\n187 0.4098\n197 0.3918\n207 0.3747
-	217 0.3585\n227 0.3431\n237 0.3285\n247 0.3147\n257 0.3015\n267 0.2890\n277 0.2771
-	287 0.2657\n297 0.2550\n307 0.2447\n317 0.2349\n327 0.2256\n337 0.2167\n347 0.2083
-	357 0.2002\n367 0.1925\n377 0.1851\n387 0.1781\n397 0.1714\n407 0.1650\n417 0.1589
-	427 0.1530\n437 0.1474\n447 0.1421\n457 0.1370\n467 0.1321\n477 0.1274\n487 0.1229
-	497 0.1186\n507 0.1145\n517 0.1105\n527 0.1068\n537 0.1031\n547 0.0997\n557 0.0963
-	567 0.0931\n577 0.0901\n587 0.0871\n597 0.0843\n607 0.0816\n617 0.0790\n627 0.0765
-	637 0.0741\n647 0.0718\n657 0.0695\n667 0.0674\n677 0.0654\n687 0.0634\n697 0.0615
-	707 0.0597\n717 0.0579\n727 0.0562\n737 0.0546\n747 0.0530\n757 0.0515\n767 0.0500
-	777 0.0486\n787 0.0472\n797 0.0459\n807 0.0447\n817 0.0435\n827 0.0423\n837 0.0411
-	847 0.0400\n857 0.0390\n867 0.0380\n877 0.0370\n887 0.0360\n897 0.0351\n907 0.0342
-	917 0.0333\n927 0.0325\n937 0.0317\n947 0.0309\n957 0.0302\n967 0.0294\n977 0.0287
-	987 0.0281\n997 0.0274\n1007 0.0268\n1017 0.0261\n1027 0.0255\n1037 0.0249\n1047 0.0244
-	1057 0.0238\n1067 0.0233\n1077 0.0228\n1087 0.0223\n1097 0.0218
-	'''
+    eq_val = '''-83 1.8954\n-73 1.7530\n-63 1.6261\n-53 1.5126\n-43 1.4104\n-33 1.3182\n-23 1.2345
+-13 1.1584\n-3 1.0888\n7 1.0251\n17 0.9665\n27 0.9125\n37 0.8626\n47 0.8164\n57 0.7734
+    67 0.7334\n87 0.6612\n97 0.6286\n107 0.5980\n117 0.5693\n127 0.5423\n137 0.5169
+    147 0.4930\n157 0.4704\n167 0.4491\n177 0.4289\n187 0.4098\n197 0.3918\n207 0.3747
+    217 0.3585\n227 0.3431\n237 0.3285\n247 0.3147\n257 0.3015\n267 0.2890\n277 0.2771
+    287 0.2657\n297 0.2550\n307 0.2447\n317 0.2349\n327 0.2256\n337 0.2167\n347 0.2083
+    357 0.2002\n367 0.1925\n377 0.1851\n387 0.1781\n397 0.1714\n407 0.1650\n417 0.1589
+    427 0.1530\n437 0.1474\n447 0.1421\n457 0.1370\n467 0.1321\n477 0.1274\n487 0.1229
+    497 0.1186\n507 0.1145\n517 0.1105\n527 0.1068\n537 0.1031\n547 0.0997\n557 0.0963
+    567 0.0931\n577 0.0901\n587 0.0871\n597 0.0843\n607 0.0816\n617 0.0790\n627 0.0765
+    637 0.0741\n647 0.0718\n657 0.0695\n667 0.0674\n677 0.0654\n687 0.0634\n697 0.0615
+    707 0.0597\n717 0.0579\n727 0.0562\n737 0.0546\n747 0.0530\n757 0.0515\n767 0.0500
+    777 0.0486\n787 0.0472\n797 0.0459\n807 0.0447\n817 0.0435\n827 0.0423\n837 0.0411
+    847 0.0400\n857 0.0390\n867 0.0380\n877 0.0370\n887 0.0360\n897 0.0351\n907 0.0342
+    917 0.0333\n927 0.0325\n937 0.0317\n947 0.0309\n957 0.0302\n967 0.0294\n977 0.0287
+    987 0.0281\n997 0.0274\n1007 0.0268\n1017 0.0261\n1027 0.0255\n1037 0.0249\n1047 0.0244
+    1057 0.0238\n1067 0.0233\n1077 0.0228\n1087 0.0223\n1097 0.0218'''
 
     eq_val = np.array([l.split() for l in eq_val.split('\n')[1:-1]], dtype='float')
     T = eq_val[:, 0] - 0.15
@@ -60,10 +55,8 @@ def __CO2eqD47_function():
 
     # return a function in order to avoid unnecessarily recomputing the polyfit
     def CO2eqD47(T):
-        '''
-		Return the theoretical equilibrium values for Δ47 in CO2 gas as
-		a function of T (°C) computed by Wang et al. (2004).
-		'''
+        """Return the theoretical equilibrium values for Δ47 in CO2 gas as a function of T (°C) computed by Wang et
+        al. (2004)."""
         return sum([eq_fit[k] * (T + 273.15) ** (k - 4) for k in range(5)])
 
     return CO2eqD47
@@ -73,9 +66,7 @@ CO2eqD47 = __CO2eqD47_function()
 
 
 def read_xls(content):
-    '''
-	reads the uploaded xls file and returns a list of measurements
-	'''
+    """	reads the uploaded xls file and returns a list of measurements	"""
     wb = xlrd.open_workbook(content)  # open the contents of the uploaded xls file
     # wb = xlrd.open_workbook( file_contents = content ) # open the contents of the uploaded xls file
     ws = wb.sheet_by_name(wb.sheet_names()[0])  # get the first worksheet
@@ -123,16 +114,10 @@ def csv_exporter(data, filename):
 
 
 def process_data(data, be_conservative=True):
-    '''
-	Computes the parameters for converting raw measurements
-	into absolute reference frame values, using the following
-	formulation:
+    """Computes the parameters for converting raw measurements	into absolute reference frame values, using the
+    following formulation: D47raw = a * D47nominal + b * d47 + c The parameters (a,b,c) are computed using a LS fit
+    of all the equilibrated gas and carbonate standard measurements."""
 
-		D47raw = a * D47nominal + b * d47 + c
-
-	The parameters (a,b,c) are computed using a LS fit of all
-	the equilibrated gas and carbonate standard measurements.
-	'''
     # design matrix:
     A = [[d['D47nominal'] / d['D47_raw_sterr'], d['d47'] / d['D47_raw_sterr'], d['D47_raw_sterr'] ** -1] for d in data
          if 'D47nominal' in d]
@@ -200,10 +185,7 @@ def process_data(data, be_conservative=True):
 
 
 def plot_data(data, f, CM, filename):
-    '''
-	Generates a plot of the data overlaid with gas lines
-	and model uncertainties.
-	'''
+    """	Generates a plot of the data overlaid with gas lines and model uncertainties."""
     (a, b, c) = f
     fig = plt.figure()
     fig.set_figwidth(6)
@@ -215,12 +197,12 @@ def plot_data(data, f, CM, filename):
         if 'D47nominal' in d:
             color = 'r'
             marker = 's'
-            plt.errorbar(d['d47'], d['D47raw'], yerr = 2 * d['D47_raw_sterr'], xerr = None, ecolor=color, **errorbar_kwargs)
+            plt.errorbar(d['d47'], d['D47raw'], yerr=2 * d['D47_raw_sterr'], xerr=None, ecolor=color, **errorbar_kwargs)
             plt.plot(d['d47'], d['D47raw'], marker, mec=color, **msmarkers_kwargs)
         else:
             color = 'b'
             marker = 'o'
-            plt.errorbar(d['d47'], d['D47raw'], yerr = 2 * d['D47_raw_sterr'], xerr = None, ecolor=color, **errorbar_kwargs)
+            plt.errorbar(d['d47'], d['D47raw'], yerr=2 * d['D47_raw_sterr'], xerr=None, ecolor=color, **errorbar_kwargs)
             plt.plot(d['d47'], d['D47raw'], marker, mec=color, **msmarkers_kwargs)
 
     xleft, xright, ybottom, ytop = plt.axis()
@@ -279,15 +261,14 @@ def plot_data(data, f, CM, filename):
 # else :
 # 	mpl.savefig( '/home/rambaldi/xlcor47/static/' + plot_path, dpi=150 )
 #
-# ### SAVE CSV ###
-# text_output = 'label	d47	D47raw	1SE	TCO2eq	absD47	corD47	SE(total)	SE(internal)	SE(model)\n\n'
-# for d in data :
-# 	if 'TCO2eq' in d :
-# 		text_output += '%s	%.4f	%.4f	%.4f	%.1f	%.4f	%.4f	%.4f	%.4f	%.4f\n' % ( d['label'], d['d47'], d['D47raw'], d['D47_raw_sterr'], d['TCO2eq'], d['D47nominal'], d['corD47'], d['scorD47_all'], d['scorD47_internal'], d['scorD47_model'] )
-# 	elif 'D47nominal' in d :
-# 		text_output += '%s	%.4f	%.4f	%.4f		%.4f	%.4f	%.4f	%.4f	%.4f\n' % ( d['label'], d['d47'], d['D47raw'], d['D47_raw_sterr'], d['D47nominal'], d['corD47'], d['scorD47_all'], d['scorD47_internal'], d['scorD47_model'] )
-# 	else :
-# 		text_output += '%s	%.4f	%.4f	%.4f			%.4f	%.4f	%.4f	%.4f\n' % ( d['label'], d['d47'], d['D47raw'], d['D47_raw_sterr'], d['corD47'], d['scorD47_all'], d['scorD47_internal'], d['scorD47_model'] )
+# ### SAVE CSV ### text_output = 'label	d47	D47raw	1SE	TCO2eq	absD47	corD47	SE(total)	SE(internal)	SE(
+# model)\n\n' for d in data : if 'TCO2eq' in d : text_output += '%s	%.4f	%.4f	%.4f	%.1f	%.4f	%.4f
+# %.4f	%.4f	%.4f\n' % ( d['label'], d['d47'], d['D47raw'], d['D47_raw_sterr'], d['TCO2eq'], d['D47nominal'],
+# d['corD47'], d['scorD47_all'], d['scorD47_internal'], d['scorD47_model'] ) elif 'D47nominal' in d : text_output +=
+# '%s	%.4f	%.4f	%.4f		%.4f	%.4f	%.4f	%.4f	%.4f\n' % ( d['label'], d['d47'], d['D47raw'],
+# d['D47_raw_sterr'], d['D47nominal'], d['corD47'], d['scorD47_all'], d['scorD47_internal'], d['scorD47_model'] ) else
+# : text_output += '%s	%.4f	%.4f	%.4f			%.4f	%.4f	%.4f	%.4f\n' % ( d['label'], d['d47'],
+# d['D47raw'], d['D47_raw_sterr'], d['corD47'], d['scorD47_all'], d['scorD47_internal'], d['scorD47_model'] )
 #
 # text_output += '\n\n'
 # text_output += 'MODEL PARAMETERS:\n'
@@ -312,16 +293,10 @@ def plot_data(data, f, CM, filename):
 # def allowed_file(filename):
 # 	return '.' in filename and filename.rsplit('.', 1)[1] in ['xls']
 #
-# @app.route('/', methods=['GET', 'POST'])
-# def upload_file():
-# 	if request.method == 'POST':
-# 		file = request.files['file']
-# 		if file and allowed_file(file.filename):
-# 			data, datahash = read_xls( file.read() )
-# 			f,CM = process_data( data )
-# 			plot_path, text_output = plot_data( data, f, CM, datahash )
-# 			return render_template( 'output.html', plot_path = plot_path, lendata = '%d' %(len(data)+20), text_output = text_output )
-# 	return render_template( 'input.html' )
+# @app.route('/', methods=['GET', 'POST']) def upload_file(): if request.method == 'POST': file = request.files[
+# 'file'] if file and allowed_file(file.filename): data, datahash = read_xls( file.read() ) f,CM = process_data( data
+# ) plot_path, text_output = plot_data( data, f, CM, datahash ) return render_template( 'output.html', plot_path =
+# plot_path, lendata = '%d' %(len(data)+20), text_output = text_output ) return render_template( 'input.html' )
 #
 # if __name__ == '__main__' :
 # 	app.debug = True
