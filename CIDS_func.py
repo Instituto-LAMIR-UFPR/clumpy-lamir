@@ -25,9 +25,27 @@ R17_VSMOW = 0.00038475  # Assonov & Brenninkmeijer, 2003
 R18_VPDB = R18_VSMOW * VPDB_VSMOW
 R17_VPDB = R17_VSMOW * VPDB_VSMOW ** LAMBDA_17
 
-# Acid Correction for Δ47
-ACID_CORRECTION_DICT = {'90': 0.088, '70': 0.066, '50': 0.040,
-                        '25': 0.0}  # Petersen at al. 2019 (Valid for Calcite/DolomiteAragonite)
+# DICTIONARY: Acid Fractionation factors for d18O:
+rxnFrac = {
+    'calcite_90': 1.008129, # Extrapolation of Kim et al., 2007 formula, also used in D47crunch
+    'calcite_75': 1.00856, # Kim et al., 2007
+    'calcite_50': 1.00937, # Kim et al., 2007
+    'calcite_25': 1.01030, # Kim et al., 2007
+    'dolomite_25': 1.01178, # Rosenbaum and sheppard, 1986
+    'dolomite_50': 1.01039, # Rosenbaum and sheppard, 1986
+    'dolomite_90': 1.009218, # Interpotalion from 2nd-order polynomial fit of Rosenbaum and sheppard, 1986
+    'dolomite_100': 1.00913, # Rosenbaum and sheppard, 1986
+    'gas_25': 1.0,
+    'gas_90': 1.0
+}
+
+# DICTIONARY: Acid Correction for Δ47
+ACID_CORRECTION_DICT = {
+    '90': 0.088,
+    '70': 0.066,
+    '50': 0.040,
+    '25': 0.0
+}  # Petersen at al. 2019 (Valid for Calcite/Dolomite/Aragonite)
 
 # Δ47 values in Caltech Reference Frame
 CIT_Carrara_CRF = 0.352
@@ -404,18 +422,10 @@ def carb_gas_oxygen_fractionation_acq(instance):
     # and the cabonate phase of the analysis, but we're sticking to 90C calcite for now
 
     vpdb_18O = 0  #don't know this right now
-    rxnFrac = {'calcite_90': 1.00821, 'calcite_50': 1.0093, 'calcite_25': 1.01025,
-               'dolomite_25': 1.01178, 'dolomite_50': 1.01038, 'dolomite_90': 1.009218, 'dolomite_100': 1.00913,
-               'gas_25': 1.0, 'gas_90': 1.0}
-
-    # calcite fractionations from swart et al., 1991
-    # dolomite fractionations from Rosenbaum and sheppard, 1986
-    # dolomite 90 is an interpotalion from 2nd-order polynomial fit of R&S data
 
     rxnKey = instance.mineral + '_' + str(instance.rxnTemp)
     if instance.useBrand2010:
-        d18O_vpdb = (instance.d18O_gas - (
-                VPDB_VSMOW - 1) * 1000) / VPDB_VSMOW  #IUPAC / Brand et al. (2014) / Kim et al. (2015)
+        d18O_vpdb = (instance.d18O_gas - (VPDB_VSMOW - 1) * 1000) / VPDB_VSMOW  #IUPAC / Brand et al. (2014) / Kim et al. (2015)
     else:
         d18O_vpdb = (instance.d18O_gas - (VPDB_VSMOW - 1) * 1000) / VPDB_VSMOW  #Friedman and O'Neil (1977) / CIDS Table
 
@@ -1153,7 +1163,7 @@ def Daeron_exporter_crunch(analyses, fileName):
     export = open(fileName + '_daeron' + '.csv', 'w', newline='')
     wrt = csv.writer(export, dialect='excel')
     wrt.writerow(
-        ['type', 'ID', 'd45', 'd46', 'd47', 'd48', 'd49', 'sd47', 'D17O', 'd13Cwg_pdb', 'd18Owg_pdbco2', 'D47raw',
+        ['type', 'Sample', 'd45', 'd46', 'd47', 'd48', 'd49', 'sd47', 'D17O', 'd13Cwg_pdb', 'd18Owg_pdbco2', 'D47raw',
          'TeqCO2', 'D47nominal'])
     for item in analyses:
         if item.type == 'sample':
